@@ -1,0 +1,13 @@
+# HTTPS-only Caddyfile for the Server bot GUI.
+# Replace stasis.yourdomain.com with your real domain/subdomain.
+#
+# This avoids the normal public HTTP :80 redirect listener and serves HTTPS on :443.
+# Your domain A-record must point to the VPS IP, and TCP 443 must be open.
+
+{
+    auto_https disable_redirects
+}
+
+https://stasis.yourdomain.com:443 {
+    reverse_proxy 127.0.0.1:8081
+}

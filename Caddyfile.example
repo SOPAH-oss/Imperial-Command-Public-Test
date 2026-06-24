@@ -1,0 +1,6 @@
+# Replace stasis.yourdomain.com with your real domain or subdomain.
+# Caddy will automatically create and renew HTTPS certificates.
+
+stasis.yourdomain.com {
+    reverse_proxy 127.0.0.1:8081
+}

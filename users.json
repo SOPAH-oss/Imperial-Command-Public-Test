@@ -1,0 +1,18 @@
+[
+  {
+    "username": "admin",
+    "password": "change-me",
+    "role": "owner",
+    "minecraft_name": "admin",
+    "discord_name": "",
+    "permissions": [
+      "bank",
+      "bounty",
+      "book_writer",
+      "shop",
+      "public",
+      "archive",
+      "faq_whisper"
+    ]
+  }
+]

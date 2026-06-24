@@ -1,0 +1,37 @@
+{
+  "host": "minecraft.example.org",
+  "port": 25565,
+  "username_or_email": "bot@example.com",
+  "auth_mode": "microsoft",
+  "gui_host": "0.0.0.0",
+  "gui_port": 8081,
+  "pull_mode": "block",
+  "casino_public_chat": false,
+  "accounts": [
+    {
+      "name": "UtilityBot",
+      "host": "minecraft.example.org",
+      "port": 25565,
+      "username_or_email": "bot@example.com",
+      "auth_mode": "microsoft",
+      "enabled": true
+    }
+  ],
+  "auto_walk_home_after_pearl": false,
+  "auto_walk_home_waypoint_id": null,
+  "waypoint_categories": [
+    "Uncategorized",
+    "Pearl Chambers",
+    "Bases",
+    "Travel",
+    "Bank Butler",
+    "Ledger Chests",
+    "Book Writer"
+  ],
+  "faq_whisper_add_enabled": true,
+  "faq_whisper_cooldown_seconds": 60,
+  "faq_output_mode": "whisper",
+  "login_greeter_enabled": true,
+  "login_greeter_cooldown_seconds": 300,
+  "greeter_output_mode": "whisper"
+}

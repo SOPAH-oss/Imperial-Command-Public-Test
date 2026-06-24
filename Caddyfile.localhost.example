@@ -1,0 +1,7 @@
+# Local HTTPS test only. This uses Caddy's internal local certificate.
+# Your browser may warn until you trust Caddy's local CA.
+
+localhost {
+    tls internal
+    reverse_proxy 127.0.0.1:8081
+}

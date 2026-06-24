@@ -1,0 +1,11 @@
+Minecraft Utility Control Center Version 1
+
+This package is the unified main branch edition.
+
+Highlights:
+- Unified Waypoints page for viewport, book writer, chest ledger banking, and Bank Butler targets.
+- Chest waypoint Walk To buttons use the same walking runtime as the viewport waypoints.
+- Bank Butler moves exact case-sensitive renamed shulkers from source chests to destination chests.
+- Host Control GUI starts/stops bot and Caddy with live log tabs.
+- Bot listings no longer show per-bot disconnect buttons.
+

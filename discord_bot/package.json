@@ -1,0 +1,14 @@
+{
+  "name": "server-command-center-discord-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "discord_bot.js",
+  "scripts": {
+    "start": "node discord_bot.js",
+    "register": "node discord_bot.js --register"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3"
+  }
+}

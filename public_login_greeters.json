@@ -1,0 +1,12 @@
+[
+  {
+    "id": "greeter-1",
+    "title": "Default Welcome",
+    "match_player": "*",
+    "message": "Welcome, {player}.",
+    "enabled": false,
+    "cooldown_seconds": 300,
+    "output_mode": "whisper",
+    "notes": "Disabled example."
+  }
+]

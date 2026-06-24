@@ -1,0 +1,1382 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Minecraft Utility Control Center</title>
+  <style>
+    body{margin:0;background:#0b0b0f;color:#eee;font-family:system-ui,Segoe UI,Arial}
+    header{padding:20px 28px;background:#15151d;border-bottom:1px solid #333}
+    main{display:grid;gap:18px;padding:22px;max-width:1300px;margin:auto}
+    .card{background:#15151d;border:1px solid #333;border-radius:12px;padding:18px}
+    .brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+    .brandLogo{width:72px;height:72px;object-fit:contain}
+    .brandTitle{font-size:30px;font-weight:800;margin:0 0 6px}
+    h1,h2{margin:0 0 12px}
+    label{display:block;margin:8px 0 4px;color:#bbb}
+    input,select,textarea,button{font:inherit;border-radius:8px;border:1px solid #444;background:#0f0f15;color:#eee;padding:9px}
+    input,select,textarea{width:100%;box-sizing:border-box}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+    .actions,.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .tabs{margin-top:16px}
+    button{cursor:pointer;background:#252535}
+    button.active{background:#353552;border-color:#777}
+    .danger{background:#442020}
+    .good{background:#204422}
+    .warn{color:#ffd27a}
+    .muted{color:#aaa}
+    .hidden{display:none!important}
+    table{width:100%;border-collapse:collapse}
+    td,th{padding:8px;border-bottom:1px solid #333;text-align:left;vertical-align:top}
+    .small{font-size:13px}
+    code{background:#0f0f15;padding:2px 5px;border-radius:5px}
+    .pill{border:1px solid #555;border-radius:999px;padding:3px 8px;font-size:12px}
+    .mini{max-width:130px}
+    .wide{min-width:220px}
+    .squareCanvas{width:100%;max-width:720px;aspect-ratio:1/1;background:#08090d;border:1px solid #333;border-radius:8px;display:block}
+    .viewportGrid{display:grid;grid-template-columns:minmax(360px,720px) minmax(280px,1fr);gap:14px;align-items:start}
+    .minimapShell{position:relative;width:100%;max-width:720px;background:#05060a;border:2px solid #05060a;border-radius:0;box-shadow:0 0 0 1px #4b5260,0 12px 28px rgba(0,0,0,.35);overflow:hidden}
+    #worldCanvas{width:100%;max-width:none;border:0;border-radius:0;image-rendering:pixelated}
+    .minimapHud{position:absolute;left:10px;right:10px;bottom:10px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+    .minimapHud span{background:rgba(0,0,0,.68);border:1px solid rgba(255,255,255,.22);border-radius:4px;padding:3px 6px;color:#f3f6ff;font-size:12px;text-shadow:0 1px 2px #000}
+    .terminal{height:180px;overflow:auto;background:#07080c;border:1px solid #333;border-radius:8px;padding:10px;font:12px ui-monospace,SFMono-Regular,Consolas,monospace;color:#bfe4c1;white-space:pre-wrap}
+    .legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+    .botDot{background:#fffb45}.pearlDot{background:#6fa8ff}.chestDot{background:#d6b25e}.waypointDot{background:#e884ff}
+    .viewportStats{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin:12px 0}
+    .statTile{background:#0d0f16;border:1px solid #333b4a;border-radius:8px;padding:10px}
+    .statLabel{font-size:11px;color:#8790a3;text-transform:uppercase}
+    .statValue{margin-top:3px;color:#f2f5ff;font-weight:700}
+    .mcHead{width:38px;height:38px;image-rendering:pixelated;border-radius:4px;border:1px solid #3e4657;background:#05060a;vertical-align:middle;margin-right:8px}
+    .priceTag{color:#f3d36b;font-weight:800}
+
+    .iccWrap{display:grid;grid-template-columns:260px 1fr;gap:14px}
+    .iccNav{background:#11121a;border:1px solid #333;border-radius:12px;padding:12px;max-height:75vh;overflow:auto}
+    .iccGroup{margin:8px 0}
+    .iccGroup h3{margin:14px 0 6px;color:#bbb;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+    .iccNav button{display:block;width:100%;text-align:left;margin:4px 0}
+    .iccCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+    .iccRecord{border:1px solid #333;border-radius:8px;padding:10px;background:#10111a;margin:8px 0;cursor:pointer}
+    .iccEditor{min-height:220px;font-family:Consolas,monospace}
+    @media(max-width:900px){.iccWrap{grid-template-columns:1fr}.iccNav{max-height:none}}
+    @media(max-width:900px){.viewportGrid{grid-template-columns:1fr}.squareCanvas{max-width:100%}}
+    @media(max-width:600px){.brandLogo{width:54px;height:54px}.brandTitle{font-size:24px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img class="brandLogo" src="/public-logo.png" alt="Server Project">
+      <div>
+        <h1 class="brandTitle">Minecraft Utility Control Center</h1>
+        <div id="status" class="muted">Loading...</div>
+        <div id="who" class="small muted"></div>
+      </div>
+    </div>
+    <div id="navTabs" class="tabs hidden">
+      <button id="pullTab" onclick="showPage('pull')">Pull Pearls</button>
+      <button id="waypointTab" onclick="showPage('waypointHub')">Waypoints</button>
+      <button id="casinoTab" onclick="showPage('casino')">Casino</button>
+      <button id="shopTab" onclick="showPage('shop')">Server Shop</button>
+      <button id="bountyTab" onclick="showPage('bounty')">Bounty Board</button>
+      <button id="ledgerTab" onclick="showPage('ledger')">Bank System</button>
+      <button id="bookTab" onclick="showPage('book')">Book Writer</button>
+      <button id="butlerTab" onclick="showPage('butler')">Bank Butler</button>
+      <button id="viewportTab" onclick="showPage('viewport')">Viewport</button>
+      <button id="publicTab" onclick="showPage('public')">Control Center</button>
+      <button id="settingsTab" onclick="showPage('settings')">Settings</button>
+      <button onclick="logout()">Logout</button>
+    </div>
+  </header>
+  <main>
+    <section id="loginCard" class="card">
+      <h2>Login</h2>
+      <div class="grid">
+        <div><label>Username</label><input id="login_user" autocomplete="username" value="admin"></div>
+        <div><label>Password</label><input id="login_pass" type="password" autocomplete="current-password"></div>
+      </div>
+      <div class="actions"><button class="good" onclick="login()">Login</button></div>
+    </section>
+
+    <section id="pullPage" class="hidden">
+      <section id="pullBotControls" class="card hidden">
+        <h2>Bot Controls</h2>
+        <div class="actions">
+          <button class="good" onclick="connectBot()">Connect Enabled Bots</button>
+          <button class="danger" onclick="disconnectBot()">Soft Disconnect All</button>
+          <button class="danger" onclick="hardStopBot()">Hard Stop + Restart</button>
+          <button class="danger" onclick="haltBotAction()">Halt Current Action</button>
+          <button onclick="showPage('settings')">Settings</button>
+        </div>
+      </section>
+
+      <section id="pearlsCard" class="card">
+        <h2>Pull Pearls</h2>
+        <table>
+          <thead><tr><th>Player</th><th>Owner</th><th>Bot</th><th>Shared With</th><th>Type</th><th>Label / Item</th><th>Coords / Inv Slot</th><th>Notes</th><th>Actions</th></tr></thead>
+          <tbody id="pearls"></tbody>
+        </table>
+      </section>
+    </section>
+
+    <section id="waypointHubPage" class="hidden">
+      <section class="card">
+        <h2>Unified Waypoints</h2>
+        <div class="actions"><button class="danger" onclick="haltBotAction()">Halt Current Walk</button></div>
+        <p class="small muted">Version 1 waypoint control center. Add, edit, delete, and select all walking/chest targets used by pearl pulls, book writing, chest ledger banking, and Bank Butler.</p>
+        <div class="grid">
+          <div><label>Type</label><select id="hub_type" onchange="updateHubTypeFields()"><option value="walk">Walk / Viewport waypoint</option><option value="pearl">Stasis pearl</option><option value="writer">Book writer chest</option><option value="banking">Chest ledger banking chest</option><option value="butler_source">Bank Butler source chest</option><option value="butler_destination">Bank Butler destination chest</option></select></div>
+          <div><label>Label</label><input id="hub_label" placeholder="Base / Bank / Delivery"></div>
+          <div><label>Category</label><select id="hub_category"></select></div>
+          <div><label>Bot name</label><input id="hub_bot" value="UtilityBot"></div>
+          <datalist id="waypointCategoryList"></datalist>
+          <div><label>X</label><input id="hub_x" type="number" value="0"></div>
+          <div><label>Y</label><input id="hub_y" type="number" value="64"></div>
+          <div><label>Z</label><input id="hub_z" type="number" value="0"></div>
+        </div>
+        <div id="hubWalkFields">
+          <label>Notes</label><input id="hub_notes" placeholder="optional">
+        </div>
+        <div id="hubPearlFields">
+          <div class="grid">
+            <div><label>Pearl owner / recipient</label><input id="hub_pearl_player" placeholder="Minecraft name"></div>
+            <div><label>Stasis type</label><select id="hub_pearl_kind"><option value="block">Pull block</option><option value="throw">Throw stasis</option><option value="both">Both</option></select></div>
+            <div><label>Named item display name</label><input id="hub_pearl_item" placeholder="exact pearl item name"></div>
+            <div><label>Inventory slot</label><input id="hub_pearl_slot" type="number" min="0" max="35" value="0"></div>
+          </div>
+          <label>Allowed users</label>
+          <textarea id="hub_pearl_allowed" rows="3" placeholder="One username per line"></textarea>
+        </div>
+        <div id="hubBankFields">
+          <div class="grid">
+            <div><label>Trash / Archive Chest X</label><input id="hub_processed_x" type="number" placeholder="optional"></div>
+            <div><label>Trash / Archive Chest Y</label><input id="hub_processed_y" type="number" placeholder="optional"></div>
+            <div><label>Trash / Archive Chest Z</label><input id="hub_processed_z" type="number" placeholder="optional"></div>
+            <div><label>Minimum Credits</label><input id="hub_min" type="number" value="1"></div>
+            <div><label>Maximum Credits</label><input id="hub_max" type="number" value="100000000"></div>
+          </div>
+          <label>Allowed book writers / signers</label>
+          <textarea id="hub_allowed" rows="3" placeholder="One trusted signer per line"></textarea>
+          <label><input id="hub_remove" type="checkbox" checked style="width:auto"> Move verified bills to trash/archive chest</label>
+        </div>
+        <div class="actions">
+          <button id="hub_save_btn" class="good" onclick="saveHubWaypoint()">Add Waypoint</button>
+          <button id="hub_cancel_btn" class="hidden" onclick="cancelHubEdit()">Cancel Edit</button>
+          <button onclick="fillHubFromBot()">Use Bot Position</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>All Waypoints</h2>
+        <div class="grid">
+          <div><label>Show category</label><select id="hub_category_filter" onchange="renderAllWaypoints()"><option value="">Select a category...</option></select></div>
+        </div>
+        <p class="small muted">Waypoints are hidden until you select a category.</p>
+        <table>
+          <thead><tr><th>Category</th><th>Type</th><th>Label</th><th>Bot</th><th>Coords</th><th>Details</th><th>Actions</th></tr></thead>
+          <tbody id="allWaypoints"><tr><td colspan="6" class="muted">Loading waypoints...</td></tr></tbody>
+        </table>
+      </section>
+    </section>
+
+    <section id="casinoPage" class="hidden">
+      <section class="card">
+        <h2>Server Casino</h2>
+        <div id="casinoBalance" class="pill">Credits: loading...</div>
+        <p class="small muted">Currency of the Server Project. In-game commands: <code>!credits</code>, <code>!slots 50</code>, <code>!roulette 50 red</code>, <code>!blackjack 50</code>.</p>
+      </section>
+
+      <section class="card">
+        <h2>Roulette</h2>
+        <div class="grid">
+          <div><label>Bet</label><input id="roulette_bet" type="number" min="1" value="25"></div>
+          <div><label>Choice</label><input id="roulette_choice" placeholder="red, black, green, odd, even, or 0-36" value="red"></div>
+        </div>
+        <div class="actions"><button class="good" onclick="playRoulette()">Spin Roulette</button></div>
+      </section>
+
+      <section class="card">
+        <h2>Slots</h2>
+        <div class="grid">
+          <div><label>Bet</label><input id="slots_bet" type="number" min="1" value="25"></div>
+        </div>
+        <div class="actions"><button class="good" onclick="playSlots()">Spin Slots</button></div>
+      </section>
+
+      <section class="card">
+        <h2>Blackjack</h2>
+        <div class="grid">
+          <div><label>Bet</label><input id="blackjack_bet" type="number" min="1" value="25"></div>
+        </div>
+        <div class="actions">
+          <button class="good" onclick="startBlackjack()">Deal</button>
+          <button onclick="hitBlackjack()">Hit</button>
+          <button onclick="standBlackjack()">Stand</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Casino Output</h2>
+        <div id="casinoOutput" class="muted">No games played yet.</div>
+      </section>
+
+      <section class="card">
+        <h2>VIP Table</h2>
+        <p class="small muted">Top Credits holders from the unified Server bank database.</p>
+        <table>
+          <thead><tr><th>Rank</th><th>Player</th><th>Credits</th></tr></thead>
+          <tbody id="vipRows"><tr><td colspan="3" class="muted">Loading VIP table...</td></tr></tbody>
+        </table>
+      </section>
+    </section>
+
+    <section id="shopPage" class="hidden">
+      <section class="card">
+        <h2>Server Shop</h2>
+        <p class="small muted">Credits spending list. Discord role rewards can be assigned automatically by the Discord bot when purchased with /shop buy.</p>
+        <div id="shopOwnerForm" class="hidden">
+          <div class="grid">
+            <div><label>Name</label><input id="shop_name" placeholder="VIP pass / title / item"></div>
+            <div><label>Price</label><input id="shop_price" type="number" min="1" value="1000"></div>
+            <div><label>Fulfillment note</label><input id="shop_command" placeholder="Manual note or title/perk instruction"></div>
+            <div><label>Reward Type</label><select id="shop_reward_type"><option value="manual">Manual / note only</option><option value="discord_role">Discord Role</option><option value="permission">Permission</option><option value="title">Title</option><option value="custom">Custom</option></select></div>
+            <div><label>Discord Role ID</label><input id="shop_discord_role_id" placeholder="Role ID, e.g. 123456789012345678"></div>
+            <div><label>Discord Role Name</label><input id="shop_discord_role_name" placeholder="Display label, e.g. Scholar"></div>
+            <div><label>Enabled</label><select id="shop_enabled"><option value="true">Enabled</option><option value="false">Hidden</option></select></div>
+          </div>
+          <label>Description</label><textarea id="shop_description" rows="3"></textarea>
+          <div class="actions">
+            <button id="shop_save_btn" class="good" onclick="saveShopItem()">Add Shop Item</button>
+            <button id="shop_cancel_btn" class="hidden" onclick="cancelShopEdit()">Cancel Edit</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Item</th><th>Description</th><th>Reward</th><th>Price</th><th>Actions</th></tr></thead>
+          <tbody id="shopRows"><tr><td colspan="4" class="muted">Loading shop...</td></tr></tbody>
+        </table>
+      </section>
+    </section>
+
+    <section id="bountyPage" class="hidden">
+      <section class="card">
+        <h2>Public Bounty Board</h2>
+        <p class="small muted">Targets use Minecraft skin heads. Rewards are denominated in Credits from the unified bank economy.</p>
+        <div id="bountyOwnerForm" class="hidden">
+          <div class="grid">
+            <div><label>Minecraft target</label><input id="bounty_target" placeholder="PlayerName"></div>
+            <div><label>Reward</label><input id="bounty_reward" type="number" min="1" value="1000"></div>
+            <div><label>Status</label><select id="bounty_status"><option value="open">Open</option><option value="in_progress">In Progress</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></div>
+          </div>
+          <label>Note</label><textarea id="bounty_note" rows="3"></textarea>
+          <div class="actions">
+            <button id="bounty_save_btn" class="good" onclick="saveBounty()">Add Bounty</button>
+            <button id="bounty_cancel_btn" class="hidden" onclick="cancelBountyEdit()">Cancel Edit</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Target</th><th>Status</th><th>Reward</th><th>Posted By</th><th>Note</th><th>Actions</th></tr></thead>
+          <tbody id="bountyRows"><tr><td colspan="6" class="muted">Loading bounties...</td></tr></tbody>
+        </table>
+      </section>
+    </section>
+
+    <section id="ledgerPage" class="hidden">
+      <section class="card">
+        <h2>Bank System</h2>
+        <p class="small muted">Select a saved banking intake chest from the Waypoints page. The bot walks to it, reads signed Credits books, credits the recipient named inside the book, then moves verified bills into the trash/archive chest configured on that waypoint.</p>
+        <div class="grid">
+          <div><label>Banking intake chest</label><select id="bank_ledger_select"></select></div>
+        </div>
+        <div class="actions">
+          <button class="good" onclick="processSelectedBankChest()">Run Bank Intake</button>
+          <button onclick="walkSelectedBankChest()">Walk To Bank Chest</button>
+          <button onclick="loadBankBalances()">Refresh Balances</button>
+        </div>
+      </section>
+      <section id="bankEditorCard" class="card hidden">
+        <h2>Owner Bank Editor</h2>
+        <p class="small muted">Owner-only direct editor for player Credits balances. This writes to bank.json.</p>
+        <div class="grid">
+          <div><label>Player</label><input id="bank_edit_user" placeholder="Minecraft/login name"></div>
+          <div><label>Credits balance</label><input id="bank_edit_amount" type="number" value="0"></div>
+        </div>
+        <div class="actions"><button class="good" onclick="saveBankBalance()">Save Balance</button><button onclick="clearBankEditor()">Clear</button></div>
+      </section>
+      <section class="card">
+        <h2>Central Player Bank Balances</h2>
+        <p class="small muted">Owner/permission-only overview of every player balance in the bank database.</p>
+        <table>
+          <thead><tr><th>Player</th><th>Credits</th><th>Actions</th></tr></thead>
+          <tbody id="bankBalanceRows"><tr><td colspan="2" class="muted">Open Bank System to load balances.</td></tr></tbody>
+        </table>
+      </section>
+
+      <section class="card hidden">
+        <h2>Credits Chest Ledger</h2>
+        <p class="small muted">The connected bot walks to this chest, opens it, reads signed books, checks the writer against the allowed signer list, then credits Credits to the recipient named on line 2.</p>
+        <div class="grid">
+          <div><label>Ledger label</label><input id="ledger_label" value="Credits Bank"></div>
+          <div><label>Chest list</label><select id="ledger_purpose"><option value="banking">Banking intake chest</option><option value="writing">Writer destination chest</option></select></div>
+          <div><label>Bot name</label><input id="ledger_bot" value="UtilityBot"></div>
+          <div><label>Chest X</label><input id="ledger_x" type="number" value="0"></div>
+          <div><label>Chest Y</label><input id="ledger_y" type="number" value="64"></div>
+          <div><label>Chest Z</label><input id="ledger_z" type="number" value="0"></div>
+          <div><label>Trash / Archive Chest X</label><input id="ledger_processed_x" type="number" placeholder="optional"></div>
+          <div><label>Trash / Archive Chest Y</label><input id="ledger_processed_y" type="number" placeholder="optional"></div>
+          <div><label>Trash / Archive Chest Z</label><input id="ledger_processed_z" type="number" placeholder="optional"></div>
+          <div><label>Minimum Credits</label><input id="ledger_min" type="number" value="1"></div>
+          <div><label>Maximum Credits</label><input id="ledger_max" type="number" value="100000000"></div>
+        </div>
+        <label>Allowed book writers / signers</label>
+        <textarea id="ledger_allowed" rows="4" placeholder="One trusted signer per line, for example UtilityBot or banker names"></textarea>
+        <label><input id="ledger_remove" type="checkbox" checked style="width:auto"> Move verified Credits bills into the trash/archive chest if set</label>
+        <div class="actions">
+          <button id="ledger_save_btn" class="good" onclick="saveLedgerChest()">Save Ledger Chest</button>
+          <button id="ledger_cancel_btn" class="hidden" onclick="cancelLedgerEdit()">Cancel Edit</button>
+          <button class="good" onclick="processLedger()">Run From Form</button>
+        </div>
+        <p class="small muted">Book text can say <code>Credits: 250</code>, <code>Amount 250</code>, <code>Value 250</code>, or just include the amount as the first number.</p>
+        <h2 class="hidden">Writer Chest Waypoints</h2>
+        <table class="hidden">
+          <thead><tr><th>Label</th><th>Bot</th><th>Book Destination Chest</th><th>Actions</th></tr></thead>
+          <tbody id="writerChests"><tr><td colspan="4" class="muted">No writer chests saved yet.</td></tr></tbody>
+        </table>
+        <h2 class="hidden">Banking Chest Waypoints</h2>
+        <table class="hidden">
+          <thead><tr><th>Label</th><th>Bot</th><th>Banking Intake Chest</th><th>Processed Bills Chest</th><th>Range</th><th>Actions</th></tr></thead>
+          <tbody id="bankingChests"><tr><td colspan="6" class="muted">No banking chests saved yet.</td></tr></tbody>
+        </table>
+      </section>
+
+      <section id="ledgerResultCard" class="card hidden">
+        <h2>Ledger Output</h2>
+        <div id="ledgerMesadmin" class="warn"></div>
+        <table>
+          <thead><tr><th>Slot</th><th>Writer</th><th>Recipient</th><th>Title</th><th>Amount</th><th>New Balance</th></tr></thead>
+          <tbody id="processedRows"></tbody>
+        </table>
+        <h2>Skipped</h2>
+        <div id="skippedRows" class="small muted"></div>
+      </section>
+
+      <section class="card">
+        <h2>Chest / Inventory View</h2>
+        <p class="small muted">After a chest-ledger run, this shows what the bot processed and skipped from the chest.</p>
+        <table>
+          <thead><tr><th>Slot</th><th>Writer</th><th>Recipient</th><th>Title</th><th>Amount</th><th>Balance</th></tr></thead>
+          <tbody id="viewportChestRows"><tr><td colspan="6" class="muted">No chest scan yet.</td></tr></tbody>
+        </table>
+        <div id="viewportSkipped" class="small muted"></div>
+      </section>
+
+    </section>
+
+    <section id="bookPage" class="hidden">
+      <section class="card">
+        <h2>Book Writer</h2>
+        <p class="small muted">The selected bot must already have a writable book/book and quill anywhere in inventory. Leave the slot blank to auto-pick one; the bot will stage it in the hotbar, write pages, confirm, sign, confirm again, then place it.</p>
+        <div class="grid">
+          <div><label>Use ledger chest</label><select id="book_ledger_select" onchange="applyLedgerToBook()"><option value="">Manual chest coords</option></select></div>
+          <div><label>Bot name</label><input id="book_bot" value="UtilityBot"></div>
+          <div><label>Recipient to credit</label><input id="book_recipient" placeholder="Minecraft name"></div>
+          <div><label>Writable book inventory slot 0-35</label><input id="book_slot" type="number" min="0" max="35" placeholder="Auto"></div>
+          <div><label>Chest X</label><input id="book_x" type="number" value="0"></div>
+          <div><label>Chest Y</label><input id="book_y" type="number" value="64"></div>
+          <div><label>Chest Z</label><input id="book_z" type="number" value="0"></div>
+          <div><label>Book title</label><input id="book_title" maxlength="32" placeholder="Credits Receipt"></div>
+        </div>
+        <label>Book pages</label>
+        <textarea id="book_pages" rows="10" placeholder="Write page 1 here&#10;---&#10;Write page 2 here"></textarea>
+        <label><input id="book_place" type="checkbox" checked style="width:auto"> Place signed book into chest after signing</label>
+        <div class="actions"><button class="good" onclick="writeSignPlaceBook()">Write, Sign, and Place Book</button><button onclick="walkSelectedWriterChest()">Walk To Writer Chest</button><button class="danger" onclick="haltBotAction()">Halt Book Action</button></div>
+      </section>
+
+      <section id="bookResultCard" class="card hidden">
+        <h2>Book Writer Output</h2>
+        <div id="bookResult" class="warn"></div>
+      </section>
+    </section>
+
+    <section id="butlerPage" class="hidden">
+      <section class="card">
+        <h2>Bank Butler</h2>
+        <div class="actions"><button class="danger" onclick="haltBotAction()">Halt Butler Action</button></div>
+        <p class="small muted">Moves one exact case-sensitive renamed shulker from a saved source chest into a saved destination chest waypoint.</p>
+        <div class="grid">
+          <div><label>Renamed shulker name</label><input id="butler_shulker_name" placeholder="Exact Name"></div>
+          <div><label>Source chest</label><select id="butler_source_select"></select></div>
+          <div><label>Destination chest waypoint</label><select id="butler_destination_select"></select></div>
+        </div>
+        <div class="actions"><button class="good" onclick="runButlerTransfer()">Take Shulker + Deliver</button><button onclick="walkSelectedButlerSource()">Walk To Source</button><button onclick="walkSelectedButlerDestination()">Walk To Destination</button><button class="danger" onclick="haltBotAction()">Halt</button></div>
+        <div id="butlerOutput" class="warn"></div>
+      </section>
+
+      <section class="card hidden">
+        <h2>Source Chest Waypoints</h2>
+        <div class="grid">
+          <div><label>Label</label><input id="butler_chest_label" placeholder="Source chest"></div>
+          <div><label>Bot name</label><input id="butler_chest_bot" value="UtilityBot"></div>
+          <div><label>Chest X</label><input id="butler_chest_x" type="number" value="0"></div>
+          <div><label>Chest Y</label><input id="butler_chest_y" type="number" value="64"></div>
+          <div><label>Chest Z</label><input id="butler_chest_z" type="number" value="0"></div>
+        </div>
+        <div class="actions">
+          <button id="butler_chest_save_btn" class="good" onclick="saveButlerChest()">Save Source Chest</button>
+          <button id="butler_chest_cancel_btn" class="hidden" onclick="cancelButlerChestEdit()">Cancel Edit</button>
+        </div>
+        <table>
+          <thead><tr><th>Label</th><th>Bot</th><th>Chest</th><th>Actions</th></tr></thead>
+          <tbody id="butlerChests"><tr><td colspan="4" class="muted">No source chests saved yet.</td></tr></tbody>
+        </table>
+      </section>
+
+      <section class="card hidden">
+        <h2>Waypoints</h2>
+        <div class="grid">
+          <div><label>Label</label><input id="butler_waypoint_label" placeholder="Delivery chest"></div>
+          <div><label>Bot name</label><input id="butler_waypoint_bot" value="UtilityBot"></div>
+          <div><label>Chest X</label><input id="butler_waypoint_x" type="number" value="0"></div>
+          <div><label>Chest Y</label><input id="butler_waypoint_y" type="number" value="64"></div>
+          <div><label>Chest Z</label><input id="butler_waypoint_z" type="number" value="0"></div>
+        </div>
+        <div class="actions">
+          <button id="butler_waypoint_save_btn" class="good" onclick="saveButlerWaypoint()">Save Waypoint</button>
+          <button id="butler_waypoint_cancel_btn" class="hidden" onclick="cancelButlerWaypointEdit()">Cancel Edit</button>
+        </div>
+        <table>
+          <thead><tr><th>Label</th><th>Bot</th><th>Destination Chest</th><th>Actions</th></tr></thead>
+          <tbody id="butlerWaypoints"><tr><td colspan="4" class="muted">No destination waypoints saved yet.</td></tr></tbody>
+        </table>
+      </section>
+    </section>
+
+    <section id="viewportPage" class="hidden">
+      <section class="card">
+        <h2>Bot Viewport</h2>
+        <div class="viewportGrid">
+          <div class="minimapShell">
+            <canvas id="worldCanvas" class="squareCanvas" width="720" height="720"></canvas>
+            <div class="minimapHud"><span id="minimapCoords">X 0 Z 0</span><span id="minimapChunks">12 chunks</span></div>
+          </div>
+          <div>
+            <div class="grid">
+              <div><label>Bot name</label><input id="world_bot" value="UtilityBot"></div>
+              <div><label>Render chunks</label><select id="world_chunks"><option>4</option><option>8</option><option selected>12</option><option>16</option><option>24</option><option>32</option></select></div>
+            </div>
+            <label><input id="viewport_auto" type="checkbox" checked style="width:auto"> Auto-update while viewport is open</label>
+            <label><input id="viewport_ping" type="checkbox" checked style="width:auto"> Ping when a walk completes</label>
+            <div class="actions">
+              <button class="good" onclick="requestWorldSnapshot()">Refresh Viewport</button>
+              <button onclick="fillWaypointFromBot()">Use Bot Position</button>
+            </div>
+            <div class="legend small muted">
+              <span><i class="dot botDot"></i>Bot</span>
+              <span><i class="dot pearlDot"></i>Pearls</span>
+              <span><i class="dot waypointDot"></i>Waypoints</span>
+              <span><i class="dot chestDot"></i>Chest target</span>
+            </div>
+            <div id="worldStats" class="viewportStats"></div>
+            <div id="worldDetails" class="small muted"></div>
+            <h2 style="margin-top:16px">Progress</h2>
+            <div id="viewportTerminal" class="terminal">Viewport ready.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card hidden">
+        <h2>Waypoints</h2>
+        <div class="grid">
+          <div><label>Label</label><input id="waypoint_label" placeholder="Base / Vault / Market"></div>
+          <div><label>Category</label><select id="waypoint_category"></select></div>
+          <div><label>Bot name</label><input id="waypoint_bot" value="UtilityBot"></div>
+          <div><label>X</label><input id="waypoint_x" type="number" value="0"></div>
+          <div><label>Y (0 ignores height)</label><input id="waypoint_y" type="number" value="0"></div>
+          <div><label>Z</label><input id="waypoint_z" type="number" value="0"></div>
+        </div>
+        <label>Notes</label><input id="waypoint_notes" placeholder="optional">
+        <div class="actions">
+          <button id="waypoint_save_btn" class="good" onclick="saveWaypoint()">Add Waypoint</button>
+          <button id="waypoint_cancel_btn" class="hidden" onclick="cancelWaypointEdit()">Cancel Edit</button>
+          <button onclick="fillWaypointFromBot()">Use Bot Position</button>
+          <button onclick="saveWaypointFromBot()">Save Current Bot Location</button>
+        </div>
+        <div class="grid"><div><label>Show category</label><select id="waypoint_category_filter" onchange="renderWalkWaypoints()"><option value="">Select a category...</option></select></div></div>
+        <p class="small muted">Walk waypoints are hidden until you select a category.</p>
+        <table>
+          <thead><tr><th>Category</th><th>Label</th><th>Bot</th><th>Coords</th><th>Notes</th><th>Actions</th></tr></thead>
+          <tbody id="waypoints"><tr><td colspan="5" class="muted">No waypoints yet.</td></tr></tbody>
+        </table>
+      </section>
+
+    </section>
+
+    <section id="settingsPage" class="hidden">
+      <section id="ownerCard" class="card hidden">
+        <h2>Owner: GUI / Bot Settings</h2>
+        <div class="grid">
+          <div><label>GUI host</label><input id="gui_host"></div>
+          <div><label>GUI port</label><input id="gui_port" type="number"></div>
+          <div><label>Casino output</label><select id="casino_public_chat"><option value="false">Whisper players</option><option value="true">Public chat</option></select></div>
+          <div><label>After pearl pull</label><select id="auto_walk_home_after_pearl"><option value="false">Do not auto-walk back</option><option value="true">Auto-walk back</option></select></div>
+          <div><label>Return waypoint</label><select id="auto_walk_home_waypoint_id"><option value="">Choose saved waypoint</option></select></div>
+        </div>
+        <div style="margin-top:12px">
+          <label>Waypoint categories</label>
+          <textarea id="waypoint_categories_text" rows="7" placeholder="One category per line, for example:
+Pearl Chambers
+Bases
+Travel
+Bank Butler"></textarea>
+          <p class="small muted">Owner-managed category list. These names appear in every waypoint category dropdown. Existing categories used by saved waypoints are also shown automatically.</p>
+        </div>
+        <div class="grid" style="margin-top:12px">
+          <div><label>FAQ whisper additions</label><select id="faq_whisper_add_enabled"><option value="true">Enabled</option><option value="false">Disabled</option></select></div>
+          <div><label>FAQ whisper cooldown seconds</label><input id="faq_whisper_cooldown_seconds" type="number" min="0" value="60"></div>
+          <div><label>FAQ answer output</label><select id="faq_output_mode"><option value="whisper">Whisper</option><option value="chat">Public chat</option></select></div>
+          <div><label>Login greeter</label><select id="login_greeter_enabled"><option value="true">Enabled</option><option value="false">Disabled</option></select></div>
+          <div><label>Login greeter cooldown seconds</label><input id="login_greeter_cooldown_seconds" type="number" min="0" value="300"></div>
+          <div><label>Greeter output</label><select id="greeter_output_mode"><option value="whisper">Whisper</option><option value="chat">Public chat</option></select></div>
+        </div>
+        <p class="small muted">FAQ commands: <code>?faq list</code>, <code>?faq #1</code>, and editor commands <code>?faqadd text</code>, <code>?faqset #1 | new text</code>, <code>?faqdel #1</code>. Set cooldown to 0 to disable add cooldown.</p>
+        <div class="actions">
+          <button onclick="saveConfig()">Save Settings</button>
+          <button class="good" onclick="connectBot()">Connect Enabled Bots</button>
+          <button class="danger" onclick="disconnectBot()">Soft Disconnect All</button>
+          <button class="danger" onclick="hardStopBot()">Hard Stop + Restart</button>
+        </div>
+        <p class="small warn">Changing GUI host/port requires a full restart. This package defaults to <code>0.0.0.0:8081</code>.</p>
+      </section>
+
+      <section id="accountsCard" class="card hidden">
+        <h2>Owner: Bot Accounts</h2>
+        <p class="small muted">Add multiple Microsoft bot accounts. Enabled accounts connect when you press Connect Enabled Bots. Use Hard Stop + Restart as the definite emergency stop; it exits the process so nothing can rejoin, then starts the GUI again.</p>
+        <table>
+          <thead><tr><th>Enabled</th><th>Name</th><th>Server</th><th>Port</th><th>Email / Offline Name</th><th>Auth</th><th>Actions</th></tr></thead>
+          <tbody id="accounts"></tbody>
+        </table>
+        <div class="actions"><button onclick="addAccountRow()">Add Bot Account</button><button onclick="saveConfig()">Save Bot Accounts</button></div>
+      </section>
+
+      <section id="addPearlCard" class="card hidden">
+        <h2>Setup Pearl</h2>
+        <div class="grid">
+          <div><label>Player</label><input id="player"></div>
+          <div><label>Label</label><input id="label" placeholder="UtilityBot pearl / backup"></div>
+          <div><label>Assigned bot</label><select id="bot_name"><option value="">Any connected bot</option></select></div>
+          <div><label>Stasis type</label><select id="stasis_kind"><option value="block">Block pull lever/trapdoor</option><option value="throw">ThrowStasis named item</option><option value="both">Both</option></select></div>
+          <div><label>Named item display name</label><input id="item_name" placeholder="exact named item, e.g. Ryomaru Pearl"></div>
+          <div><label>Inventory slot 0-35</label><input id="inventory_slot" type="number" min="0" max="35" value="0"></div>
+          <div><label>X</label><input id="x" type="number"></div>
+          <div><label>Y</label><input id="y" type="number"></div>
+          <div><label>Z</label><input id="z" type="number"></div>
+          <div><label>Allowed users</label><input id="allowed_users" placeholder="comma names, e.g. exampleuser,void"></div>
+        </div>
+        <label>Notes</label><textarea id="notes"></textarea>
+        <div class="actions"><button onclick="addPearl()">Add to List</button></div>
+        <p class="small muted">Normal users can only create entries for themselves. Inventory slots: 0-8 hotbar, 9-35 main inventory.</p>
+      </section>
+
+      <section id="usersCard" class="card hidden">
+        <h2>Owner: User Logins</h2>
+        <p class="small muted">Users can add their own pearls and pull pearls owned by them or shared with their username. Owners can link Discord names here so Discord casino/shop commands use the right Minecraft bank balance.</p>
+        <div class="grid">
+          <div><label>Username</label><input id="new_username"></div>
+          <div><label>Password</label><input id="new_password" type="password"></div>
+          <div><label>Role</label><select id="new_role"><option value="user">user</option><option value="owner">owner</option></select></div>
+          <div><label>Minecraft name</label><input id="new_mc"></div>
+          <div><label>Discord name</label><input id="new_discord" placeholder="Display name, username, or Discord ID"></div>
+        </div>
+        <label>Page permissions for normal users</label>
+        <div class="actions">
+          <label><input id="perm_bank" type="checkbox" style="width:auto"> Bank System / Balances</label>
+          <label><input id="perm_bounty" type="checkbox" style="width:auto"> Bounty Board</label>
+          <label><input id="perm_book_writer" type="checkbox" style="width:auto"> Book Writer</label>
+          <label><input id="perm_shop" type="checkbox" style="width:auto"> Server Shop</label>
+          <label><input id="perm_faq_whisper" type="checkbox" style="width:auto"> Add FAQs by Minecraft whisper</label>
+        </div>
+        <div class="actions">
+          <button id="user_save_btn" onclick="saveUser()">Create Login</button>
+          <button id="user_cancel_btn" class="hidden" onclick="cancelUserEdit()">Cancel Edit</button>
+        </div>
+        <table>
+          <thead><tr><th>User</th><th>Role</th><th>Minecraft</th><th>Discord</th><th>Permissions</th><th>Actions</th></tr></thead>
+          <tbody id="users"></tbody>
+        </table>
+      </section>
+    </section>
+
+    <section id="publicPage" class="hidden">
+      <section class="card">
+        <h2>Minecraft Utility Control Center</h2>
+        <p class="small muted">All Server systems are now inside the main <code>index.html</code> GUI. No separate command-center HTML page is required.</p>
+        <div class="actions">
+          <button onclick="iccShowDash()">Observatory</button>
+          <button onclick="iccLoadDashboard()">Refresh</button>
+        </div>
+      </section>
+      <section class="card">
+        <div class="iccWrap">
+          <aside id="iccNav" class="iccNav"></aside>
+          <div>
+            <section id="iccDash">
+              <h2>Dashboard</h2>
+              <div id="iccCards" class="iccCards"></div>
+            </section>
+            <section id="iccModule" class="hidden">
+              <div class="actions"><h2 id="iccTitle" style="margin-right:auto"></h2><button onclick="iccShowDash()">Back to Observatory</button></div>
+              <div class="grid">
+                <div>
+                  <h3>Records</h3>
+                  <div class="actions"><input id="iccSearch" placeholder="Filter records"><button onclick="iccLoadRecords()">Refresh</button><button onclick="iccGlobalSearch()">Search All</button></div>
+                  <div id="iccRecords"></div>
+                </div>
+                <div>
+                  <h3 id="iccEditorTitle">Create Record</h3>
+                  <p id="iccHelp" class="small muted">Use the purpose-built fields below. Records save to their matching Server data files and are protected by the API.</p>
+                  <div id="iccForm" class="grid"></div>
+                  <div class="actions"><button class="good" id="iccSaveButton" onclick="iccSaveRecord()">Save</button><button onclick="iccClearEditor()">New</button><button class="danger" onclick="iccDeleteRecord()">Delete Selected</button></div>
+                  <pre id="iccResult" class="terminal"></pre>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+    </section>
+
+  </main>
+
+  <script>
+let me=null, currentConfig=null, activePage='pull', pearlCache=[], waypointCache=[], ledgerChestCache=[], butlerChestCache=[], butlerWaypointCache=[], shopCache=[], bountyCache=[], botStatusCache=null, lastLedgerResult=null, lastWorldSnapshot=null, editingWaypointId=null, editingLedgerId=null, editingButlerChestId=null, editingButlerWaypointId=null, editingHub=null, editingShopId=null, editingBountyId=null, editingUser=null, viewportSnapshotBusy=false, lastViewportPlot=null, lastViewportBotLine='', activeWalkLabel=null, lastViewportSnapshotAt=0, lastViewportCenter=null;
+async function api(path, opts={}){const r=await fetch(path,opts); if(!r.ok) throw new Error(await r.text()); const ct=r.headers.get('content-type')||''; return ct.includes('json')?r.json():r.text();}
+async function login(){await api('/api/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:login_user.value,password:login_pass.value})}); activePage='pull'; await boot();}
+async function logout(){await api('/api/auth/logout',{method:'POST'}); me=null; activePage='pull'; boot();}
+function showAuthed(on){
+  loginCard.classList.toggle('hidden',on);
+  navTabs.classList.toggle('hidden',!on);
+  addPearlCard.classList.toggle('hidden',!on);
+  pullBotControls.classList.toggle('hidden',!(on&&isOwner()));
+  shopTab.classList.toggle('hidden',!(on&&canAccess('shop')));
+  bountyTab.classList.toggle('hidden',!(on&&canAccess('bounty')));
+  ledgerTab.classList.toggle('hidden',!(on&&canAccess('bank')));
+  bookTab.classList.toggle('hidden',!(on&&canAccess('book_writer')));
+  ownerCard.classList.toggle('hidden',!(on&&isOwner()));
+  accountsCard.classList.toggle('hidden',!(on&&isOwner()));
+  usersCard.classList.toggle('hidden',!(on&&isOwner()));
+  publicTab.classList.toggle('hidden',!(on&&isOwner()));
+  if(on) showPage(activePage); else { pullPage.classList.add('hidden'); waypointHubPage.classList.add('hidden'); casinoPage.classList.add('hidden'); shopPage.classList.add('hidden'); bountyPage.classList.add('hidden'); ledgerPage.classList.add('hidden'); bookPage.classList.add('hidden'); butlerPage.classList.add('hidden'); viewportPage.classList.add('hidden'); settingsPage.classList.add('hidden'); publicPage.classList.add('hidden'); }
+}
+function isOwner(){return me?.role==='owner'}
+function canAccess(key){return isOwner()||(me?.permissions||[]).includes(key)}
+function showPage(page){
+  if(page==='public'&&!isOwner()){alert('Owner login required for Control Center.'); page='pull';}
+  if(['shop','bounty','ledger','book'].includes(page)){const key={shop:'shop',bounty:'bounty',ledger:'bank',book:'book_writer'}[page]; if(!canAccess(key)){alert('You do not have permission for this page.'); page='pull';}}
+  activePage=page;
+  pullPage.classList.toggle('hidden',page!=='pull');
+  waypointHubPage.classList.toggle('hidden',page!=='waypointHub');
+  casinoPage.classList.toggle('hidden',page!=='casino');
+  shopPage.classList.toggle('hidden',page!=='shop');
+  bountyPage.classList.toggle('hidden',page!=='bounty');
+  ledgerPage.classList.toggle('hidden',page!=='ledger');
+  bookPage.classList.toggle('hidden',page!=='book');
+  butlerPage.classList.toggle('hidden',page!=='butler');
+  viewportPage.classList.toggle('hidden',page!=='viewport');
+  settingsPage.classList.toggle('hidden',page!=='settings');
+  publicPage.classList.toggle('hidden',page!=='public');
+  pullTab.classList.toggle('active',page==='pull');
+  waypointTab.classList.toggle('active',page==='waypointHub');
+  casinoTab.classList.toggle('active',page==='casino');
+  shopTab.classList.toggle('active',page==='shop');
+  bountyTab.classList.toggle('active',page==='bounty');
+  ledgerTab.classList.toggle('active',page==='ledger');
+  bookTab.classList.toggle('active',page==='book');
+  butlerTab.classList.toggle('active',page==='butler');
+  viewportTab.classList.toggle('active',page==='viewport');
+  settingsTab.classList.toggle('active',page==='settings');
+  publicTab.classList.toggle('active',page==='public');
+  if(page==='waypointHub') loadAllWaypointStores();
+  if(page==='casino'){ loadCasinoBalance(); loadVipTable(); }
+  if(page==='shop') loadShopItems();
+  if(page==='bounty') loadBounties();
+  if(page==='ledger'){ loadLedgerChests(); loadBankBalances(); }
+  if(page==='book') loadLedgerChests();
+  if(page==='butler') loadButlerLists();
+  if(page==='viewport'){ loadWaypoints(); setTimeout(()=>{drawViewport(); requestWorldSnapshot(true);},50); }
+  if(page==='public') iccInit();
+}
+async function boot(){try{me=await api('/api/auth/me'); who.innerHTML=`Logged in as <span class="pill">${esc(me.username)}</span> <span class="pill">${esc(me.role)}</span>`; showAuthed(true); if(isOwner()){await loadConfig(); await loadUsers(); await loadLedgerChests(); await loadButlerLists();} await loadPearls(); await loadWaypoints(); await loadCasinoBalance(); statusLoop();}catch(e){who.textContent='Not logged in'; status.textContent='Login required'; showAuthed(false)}}
+
+const iccGroups={
+ 'Treasury':['departments','budgets','financial_reports'],
+ 'Archives':['chronicles','library','decrees','historical_events','timeline','archive_backups'],
+ 'Intelligence Bureau':['players','factions','intelligence_reports','sightings','watchlist','contacts'],
+ 'Cartography':['regions','roads','portals','ice_highways','routes','regional_ownership'],
+ 'Hall of Records':['admins','former_admins','former_archadmins','founders','benefactors','lineage','mentors'],
+ 'Relics & Wonders':['relics','artifacts','banners','codices','wonders'],
+ 'Governance':['proposals','votes','decisions'],
+ 'Citizen Administration':['census','citizens','ranks','promotions'],
+ 'Communications':['mail','notifications','news','faqs','login_greeters'],
+ 'Discovery & Knowledge':['discoveries','explorer_rankings','research','scholar_contributions'],
+ 'Additional Systems':['id_cards','certificates','archive_scans','pearl_monitor','assets','emergency_log']
+};
+const iccSchemas={
+ departments:{noun:'Department',help:'Create proper treasury departments with their own balance, head, and purpose.',fields:[['name','Department name','text','Vault of Coin'],['balance','Balance','number','0'],['head','Department head','text','Admin'],['category','Category','select',['Treasury','Archive','Library','Cartography','Intelligence','Infrastructure','Hall of Admins','Other']],['status','Status','select',['Active','Reserved','Frozen','Closed']],['purpose','Purpose','textarea','What this department pays for'],['notes','Notes','textarea','']]},
+ budgets:{noun:'Budget',fields:[['name','Budget name','text','Archive Expansion Budget'],['department','Department','text','Grand Archive'],['allocated','Allocated credits','number','0'],['spent','Spent credits','number','0'],['status','Status','select',['Open','Approved','Paused','Closed']],['reason','Reason','textarea',''],['notes','Notes','textarea','']]},
+ financial_reports:{noun:'Financial Report',fields:[['title','Report title','text','Monthly Treasury Report'],['period','Period','text','2026-06'],['total_income','Total income','number','0'],['total_spent','Total spent','number','0'],['prepared_by','Prepared by','text',''],['summary','Summary','textarea','']]},
+ chronicles:{noun:'Chronicle Entry',fields:[['title','Title','text','Founding of the Southern Archive'],['date','Date','date',''],['category','Category','select',['Founding','Discovery','Conflict','Diplomacy','Construction','Internal','Other']],['importance','Importance','select',['Low','Medium','High','Legendary']],['summary','Summary','textarea',''],['notes','Notes','textarea','']]},
+ library:{noun:'Library Item',fields:[['title','Title','text','Codex Entry'],['author','Author','text',''],['category','Category','select',['History','Doctrine','Cartography','Diplomacy','Architecture','Research','Book','Other']],['location','Location','text',''],['status','Status','select',['Catalogued','Missing','Loaned','Archived']],['summary','Summary','textarea','']]},
+ decrees:{noun:'Server Decree',fields:[['title','Decree title','text','Decree I'],['issued_by','Issued by','text','Admin'],['date','Date','date',''],['status','Status','select',['Issued','Repealed','Superseded']],['decree_text','Decree text','textarea',''],['notes','Notes','textarea','']]},
+ historical_events:{noun:'Historical Event',fields:[['title','Event title','text',''],['date','Date','date',''],['location','Location','text',''],['people','People involved','textarea',''],['summary','Summary','textarea',''],['sources','Sources','textarea','']]},
+ timeline:{noun:'Timeline Entry',fields:[['title','Title','text',''],['date','Date','date',''],['era','Era','text',''],['category','Category','text',''],['description','Description','textarea','']]},
+ archive_backups:{noun:'Archive Backup',fields:[['title','Backup name','text','Weekly Archive Backup'],['date','Date','date',''],['location','Location/path','text',''],['status','Status','select',['Created','Verified','Failed','Restored']],['notes','Notes','textarea','']]},
+ players:{noun:'Player Record',fields:[['player','Player name','text',''],['aliases','Aliases','textarea','One per line'],['status','Status','select',['Friendly','Neutral','Watchlisted','Hostile','Unknown']],['reputation','Reputation','select',['Trusted','Positive','Neutral','Suspicious','Dangerous']],['last_seen','Last seen','date',''],['notes','Notes','textarea','']]},
+ factions:{noun:'Faction Record',fields:[['name','Faction name','text',''],['status','Status','select',['Allied','Friendly','Neutral','Watchlisted','Hostile','Unknown']],['contacts','Contacts','textarea',''],['territory','Territory/region','text',''],['notes','Notes','textarea','']]},
+ intelligence_reports:{noun:'Intelligence Report',fields:[['title','Report title','text',''],['subject','Subject','text','Player, faction, or region'],['classification','Classification','select',['Public','Internal','Sensitive','Owner Only']],['status','Status','select',['Draft','Verified','Unverified','Archived']],['report','Report','textarea',''],['sources','Sources','textarea','']]},
+ sightings:{noun:'Sighting',fields:[['subject','Subject','text',''],['date','Date','date',''],['location','Location','text',''],['x','X','number','0'],['y','Y','number','64'],['z','Z','number','0'],['notes','Notes','textarea','']]},
+ watchlist:{noun:'Watchlist Entry',fields:[['subject','Subject','text',''],['type','Type','select',['Player','Faction','Base','Region']],['severity','Severity','select',['Low','Medium','High','Critical']],['reason','Reason','textarea',''],['status','Status','select',['Active','Resolved','Archived']]]},
+ contacts:{noun:'Contact',fields:[['name','Name','text',''],['type','Type','select',['Player','Faction','Discord','Other']],['relationship','Relationship','select',['Allied','Friendly','Neutral','Unknown','Hostile']],['contact_method','Contact method','text',''],['notes','Notes','textarea','']]},
+ regions:{noun:'Region',fields:[['name','Region name','text','Server Heartland'],['status','Status','select',['Active','Claimed','Observed','Archived']],['owner','Owner/department','text',''],['description','Description','textarea',''],['notes','Notes','textarea','']]},
+ roads:{noun:'Road',fields:[['name','Road name','text',''],['region','Region','text',''],['from','From','text',''],['to','To','text',''],['status','Status','select',['Planned','Under Construction','Active','Damaged','Archived']],['notes','Notes','textarea','']]},
+ portals:{noun:'Portal',fields:[['name','Portal name','text',''],['region','Region','text',''],['overworld_coords','Overworld coords','text','x y z'],['nether_coords','Nether coords','text','x y z'],['status','Status','select',['Active','Hidden','Broken','Archived']],['notes','Notes','textarea','']]},
+ ice_highways:{noun:'Ice Highway',fields:[['name','Highway name','text',''],['direction','Direction','text','North/South/etc'],['start','Start','text',''],['end','End','text',''],['status','Status','select',['Active','Damaged','Planned','Archived']],['notes','Notes','textarea','']]},
+ routes:{noun:'Route',fields:[['name','Route name','text',''],['type','Type','select',['Walk','Boat','Elytra','Nether','Ice Highway','Other']],['from','From','text',''],['to','To','text',''],['instructions','Instructions','textarea',''],['risk','Risk','select',['Low','Medium','High']]]},
+ regional_ownership:{noun:'Regional Ownership',fields:[['region','Region','text',''],['owner','Owner','text',''],['department','Department','text',''],['status','Status','select',['Assigned','Contested','Unassigned','Archived']],['notes','Notes','textarea','']]},
+ admins:{noun:'Admin',fields:[['name','Name','text',''],['rank','Rank','select',['Admin','Senior Admin','Owner','Scholar','Aspirant']],['title','Title','text',''],['appointed','Appointed','date',''],['status','Status','select',['Active','Inactive','Former']],['notes','Notes','textarea','']]},
+ former_admins:{noun:'Former Admin',fields:[['name','Name','text',''],['former_rank','Former rank','text',''],['period','Period','text',''],['legacy','Legacy','textarea',''],['notes','Notes','textarea','']]},
+ former_archadmins:{noun:'Former Senior Admin',fields:[['name','Name','text',''],['period','Period','text',''],['legacy','Legacy','textarea',''],['notes','Notes','textarea','']]},
+ founders:{noun:'Founder',fields:[['name','Name','text',''],['role','Role','text',''],['contribution','Contribution','textarea',''],['notes','Notes','textarea','']]},
+ benefactors:{noun:'Benefactor',fields:[['name','Name','text',''],['contribution','Contribution','textarea',''],['date','Date','date',''],['recognition','Recognition','text',''],['notes','Notes','textarea','']]},
+ lineage:{noun:'Lineage Link',fields:[['mentor','Mentor','text',''],['student','Student','text',''],['started','Started','date',''],['status','Status','select',['Active','Completed','Ended']],['notes','Notes','textarea','']]},
+ mentors:{noun:'Mentorship',fields:[['mentor','Mentor','text',''],['student','Student','text',''],['focus','Focus','text',''],['status','Status','select',['Active','Paused','Completed']],['notes','Notes','textarea','']]},
+ relics:{noun:'Relic',fields:[['name','Relic name','text',''],['type','Type','select',['Book','Banner','Tool','Armor','Weapon','Map','Other']],['owner','Owner','text',''],['location','Location','text',''],['condition','Condition','select',['Pristine','Good','Damaged','Lost','Unknown']],['history','History','textarea','']]},
+ artifacts:{noun:'Artifact',fields:[['name','Artifact name','text',''],['category','Category','text',''],['owner','Owner','text',''],['location','Location','text',''],['history','History','textarea','']]},
+ banners:{noun:'Banner',fields:[['name','Banner name','text',''],['design','Design','textarea',''],['owner','Owner','text',''],['location','Location','text',''],['status','Status','select',['Active','Archived','Lost']]]},
+ codices:{noun:'Codex',fields:[['title','Codex title','text',''],['version','Version','text',''],['status','Status','select',['Draft','Canonical','Archived','Superseded']],['location','Location','text',''],['summary','Summary','textarea','']]},
+ wonders:{noun:'World Wonder',fields:[['name','Wonder name','text',''],['builder','Builder','text',''],['location','Location','text',''],['importance','Importance','select',['Minor','Major','Great','Legendary']],['status','Status','select',['Standing','Damaged','Lost','Under Construction']],['history','History','textarea','']]},
+ proposals:{noun:'Proposal',fields:[['title','Proposal title','text',''],['proposed_by','Proposed by','text',''],['status','Status','select',['Open','Approved','Rejected','Closed']],['proposal','Proposal','textarea',''],['notes','Notes','textarea','']]},
+ votes:{noun:'Vote Record',fields:[['proposal','Proposal','text',''],['voter','Voter','text',''],['vote','Vote','select',['For','Against','Abstain']],['reason','Reason','textarea','']]},
+ decisions:{noun:'Decision',fields:[['title','Decision title','text',''],['decided_by','Decided by','text',''],['date','Date','date',''],['result','Result','textarea',''],['notes','Notes','textarea','']]},
+ census:{noun:'Census Entry',fields:[['date','Date','date',''],['citizens','Citizens','number','0'],['admins','Admins','number','0'],['archadmins','Senior Admins','number','0'],['active_members','Active members','number','0'],['notes','Notes','textarea','']]},
+ citizens:{noun:'Citizen',fields:[['name','Name','text',''],['rank','Rank','text','Citizen'],['minecraft_name','Minecraft name','text',''],['discord_name','Discord name','text',''],['status','Status','select',['Active','Inactive','Former','Banished']],['notes','Notes','textarea','']]},
+ ranks:{noun:'Rank',fields:[['name','Rank name','text','Scholar'],['level','Level/order','number','0'],['permissions','Permissions/rights','textarea',''],['description','Description','textarea','']]},
+ promotions:{noun:'Promotion',fields:[['person','Person','text',''],['from_rank','From rank','text',''],['to_rank','To rank','text',''],['date','Date','date',''],['approved_by','Approved by','text',''],['reason','Reason','textarea','']]},
+ mail:{noun:'Postal Mesadmin',fields:[['to','To','text',''],['from','From','text',''],['subject','Subject','text',''],['status','Status','select',['Draft','Sent','Read','Archived']],['mesadmin','Mesadmin','textarea','']]},
+ notifications:{noun:'Notification',fields:[['title','Title','text',''],['audience','Audience','text','All'],['priority','Priority','select',['Low','Normal','High','Critical']],['status','Status','select',['Draft','Published','Archived']],['mesadmin','Mesadmin','textarea','']]},
+ news:{noun:'News Entry',fields:[['title','Title','text',''],['date','Date','date',''],['category','Category','text',''],['status','Status','select',['Draft','Published','Archived']],['body','Body','textarea','']]},
+ faqs:{noun:'FAQ Entry',help:'Owner-only FAQ database. Allowed Minecraft users can add/edit/delete FAQs with ?faqadd, ?faqset, and ?faqdel when they have permission.',fields:[['text','FAQ Text','textarea','Write the full FAQ answer/text here'],['category','Category','text','General'],['enabled','Enabled','select',['true','false']],['cooldown_seconds','Optional cooldown seconds','number','0'],['source','Source / submitted by','text','Owner GUI'],['notes','Notes','textarea','']]},
+ login_greeters:{noun:'Login Greeter Mesadmin',help:'Owner-only adaptable greeter mesadmins. Use {player} to insert the Minecraft name.',fields:[['title','Greeter title','text','Welcome mesadmin'],['target','Target player or All','text','All'],['mesadmin','Mesadmin','textarea','Welcome, {player}. The Server remembers.'],['enabled','Enabled','select',['true','false']],['cooldown_seconds','Optional cooldown seconds','number','300'],['priority','Priority','number','0'],['notes','Notes','textarea','']]},
+ discoveries:{noun:'Discovery',fields:[['name','Discovery name','text',''],['discovered_by','Discovered by','text',''],['date','Date','date',''],['location','Location','text',''],['category','Category','select',['Structure','Biome','Base','Resource','Historical Site','Other']],['description','Description','textarea','']]},
+ explorer_rankings:{noun:'Explorer Ranking',fields:[['name','Explorer','text',''],['points','Points','number','0'],['discoveries','Discoveries','number','0'],['rank','Rank','text',''],['notes','Notes','textarea','']]},
+ research:{noun:'Research Entry',fields:[['title','Research title','text',''],['author','Author','text',''],['category','Category','text',''],['status','Status','select',['Draft','Reviewed','Published','Archived']],['findings','Findings','textarea','']]},
+ scholar_contributions:{noun:'Scholar Contribution',fields:[['scholar','Scholar','text',''],['type','Type','select',['Book','Research','Discovery','Mentorship','Archive Work','Other']],['date','Date','date',''],['value','Contribution','textarea',''],['points','Knowledge points','number','0']]},
+ id_cards:{noun:'Server ID Card',fields:[['name','Name','text',''],['rank','Rank','text',''],['title','Title','text',''],['id_number','ID number','text',''],['status','Status','select',['Active','Revoked','Archived']],['notes','Notes','textarea','']]},
+ certificates:{noun:'Certificate',fields:[['recipient','Recipient','text',''],['type','Type','select',['Promotion','Appointment','Award','Decree','Recognition']],['issued_by','Issued by','text',''],['date','Date','date',''],['text','Certificate text','textarea','']]},
+ archive_scans:{noun:'Archive Scan',fields:[['title','Scan title','text',''],['source','Source','text',''],['date','Date','date',''],['status','Status','select',['Queued','Scanned','Indexed','Failed']],['notes','Notes','textarea','']]},
+ pearl_monitor:{noun:'Pearl Monitor Entry',fields:[['player','Player','text',''],['chamber','Chamber','text',''],['bot','Bot','text',''],['last_pull','Last pull','text',''],['pull_count','Pull count','number','0'],['status','Status','select',['Ready','Pulled','Missing','Needs Check']],['notes','Notes','textarea','']]},
+ assets:{noun:'Server Asset',fields:[['name','Asset name','text',''],['type','Type','select',['Base','Vault','Library','Farm','Road','Pearl Chamber','Shop','Other']],['owner','Owner/department','text',''],['location','Location','text',''],['status','Status','select',['Active','Hidden','Damaged','Lost','Archived']],['notes','Notes','textarea','']]},
+ emergency_log:{noun:'Emergency Log',fields:[['title','Title','text','Emergency Action'],['kind','Kind','text',''],['date','Date','date',''],['action','Action','textarea',''],['handled_by','Handled by','text',''],['notes','Notes','textarea','']]}
+};
+function iccDefaultSchema(id){return {noun:(iccLabels[id]||id).replace(/_/g,' '),fields:[['title','Title','text',''],['category','Category','text',''],['status','Status','select',['Active','Draft','Archived']],['notes','Notes','textarea','']]};}
+let iccCollections=[], iccLabels={}, iccCurrent=null, iccSelected=null, iccSelectedRecord=null, iccReady=false;
+async function iccApi(url,opt={}){const r=await fetch(url,{headers:{'content-type':'application/json'},...opt}); if(!r.ok) throw new Error(await r.text()); const ct=r.headers.get('content-type')||''; return ct.includes('json')?await r.json():await r.text();}
+async function iccInit(){try{if(!iccReady){iccCollections=await iccApi('/api/public/collections'); iccLabels=Object.fromEntries(iccCollections.map(c=>[c.id,c.label])); iccRenderNav(); iccReady=true;} await iccLoadDashboard();}catch(e){iccNav.innerHTML='<p class="warn">Server modules could not load: '+esc(e.mesadmin)+'</p>';}}
+function iccRenderNav(){iccNav.innerHTML=''; for(const [group,items] of Object.entries(iccGroups)){const div=document.createElement('div'); div.className='iccGroup'; div.innerHTML=`<h3>${esc(group)}</h3>`; for(const id of items){if(!iccLabels[id])continue; const b=document.createElement('button'); b.textContent=iccLabels[id]; b.onclick=()=>iccOpenModule(id); div.appendChild(b);} iccNav.appendChild(div);}}
+async function iccLoadDashboard(){const data=await iccApi('/api/public/dashboard'); iccCards.innerHTML=''; for(const [id,v] of Object.entries(data)){const card=document.createElement('div'); card.className='card'; card.style.cursor='pointer'; card.innerHTML=`<b>${esc(v.label)}</b><br><span style="font-size:26px">${esc(v.count)}</span><br><span class="muted small">records</span>`; card.onclick=()=>iccOpenModule(id); iccCards.appendChild(card);}}
+function iccShowDash(){iccCurrent=null; iccDash.classList.remove('hidden'); iccModule.classList.add('hidden'); iccLoadDashboard();}
+async function iccOpenModule(id){iccCurrent=id; iccSelected=null; iccSelectedRecord=null; const schema=iccSchemas[id]||iccDefaultSchema(id); iccTitle.textContent=iccLabels[id]||schema.noun; iccHelp.textContent=schema.help||`Create and manage ${schema.noun.toLowerCase()} records with dedicated fields.`; iccDash.classList.add('hidden'); iccModule.classList.remove('hidden'); iccClearEditor(); await iccLoadRecords();}
+function iccRecordTitle(r){return r.question||r.title||r.name||r.player||r.faction||r.subject||r.region||r.department||r.recipient||r.proposal||r.id||'Untitled';}
+function iccRecordSummary(r){const bits=[]; for(const k of ['status','category','rank','balance','head','date','location','owner','department','importance']){if(r[k]!==undefined&&r[k]!==null&&r[k]!=='')bits.push(`${k}: ${r[k]}`);} return bits.slice(0,4).join(' · ');}
+async function iccLoadRecords(){if(!iccCurrent)return; const records=await iccApi('/api/public/'+iccCurrent); const q=(iccSearch.value||'').toLowerCase(); const list=q?records.filter(r=>JSON.stringify(r).toLowerCase().includes(q)):records; iccRecords.innerHTML=''; if(!list.length){iccRecords.innerHTML='<p class="muted small">No records yet. Use the form to create one.</p>'; return;} for(const r of list){const el=document.createElement('div'); el.className='iccRecord'; el.innerHTML=`<b>${esc(iccRecordTitle(r))}</b><br><span class="muted small">${esc(iccRecordSummary(r)||'record')}</span>`; el.onclick=()=>iccSelectRecord(r); iccRecords.appendChild(el);}}
+function iccFieldHtml(field, value=''){const [key,label,type,extra]=field; const id='icc_f_'+key; const val=value??''; if(type==='textarea')return `<div style="grid-column:1/-1"><label>${esc(label)}</label><textarea id="${id}" data-key="${escAttr(key)}" data-type="${type}" rows="4" placeholder="${escAttr(extra||'')}">${esc(val)}</textarea></div>`; if(type==='select'){const opts=(Array.isArray(extra)?extra:[]); return `<div><label>${esc(label)}</label><select id="${id}" data-key="${escAttr(key)}" data-type="${type}">${opts.map(o=>`<option value="${escAttr(o)}" ${String(val)===String(o)?'selected':''}>${esc(o)}</option>`).join('')}</select></div>`;} return `<div><label>${esc(label)}</label><input id="${id}" data-key="${escAttr(key)}" data-type="${escAttr(type)}" type="${type==='date'?'date':type==='number'?'number':'text'}" value="${escAttr(val)}" placeholder="${escAttr(extra||'')}"></div>`;}
+function iccRenderForm(record={}){const schema=iccSchemas[iccCurrent]||iccDefaultSchema(iccCurrent); iccForm.innerHTML=schema.fields.map(f=>iccFieldHtml(f, record[f[0]])).join('');}
+function iccClearEditor(){iccSelected=null; iccSelectedRecord=null; const schema=iccSchemas[iccCurrent]||iccDefaultSchema(iccCurrent||'record'); iccEditorTitle.textContent='Create '+schema.noun; iccSaveButton.textContent='Create '+schema.noun; iccRenderForm({}); iccResult.textContent='';}
+function iccSelectRecord(r){iccSelected=r.id; iccSelectedRecord=r; const schema=iccSchemas[iccCurrent]||iccDefaultSchema(iccCurrent); iccEditorTitle.textContent='Edit '+schema.noun; iccSaveButton.textContent='Save Changes'; iccRenderForm(r); iccResult.textContent='Selected '+iccRecordTitle(r);}
+function iccReadForm(){const obj={}; for(const el of iccForm.querySelectorAll('[data-key]')){const key=el.dataset.key; const type=el.dataset.type; let val=el.value; if(type==='number') val=Number(val||0); obj[key]=val;} if(iccSelected) obj.id=iccSelected; return obj;}
+async function iccSaveRecord(){if(!iccCurrent)return; try{const body=iccReadForm(); const url=iccSelected?`/api/public/${iccCurrent}/${encodeURIComponent(iccSelected)}`:`/api/public/${iccCurrent}`; const method=iccSelected?'PUT':'POST'; const saved=await iccApi(url,{method,body:JSON.stringify(body)}); iccResult.textContent='Saved '+iccRecordTitle(saved); iccSelected=saved.id; iccSelectedRecord=saved; await iccLoadRecords(); await iccLoadDashboard();}catch(e){iccResult.textContent='ERROR: '+e.mesadmin;}}
+async function iccDeleteRecord(){if(!iccCurrent||!iccSelected)return alert('Select a record first.'); if(!confirm('Delete selected Server record?'))return; try{await iccApi(`/api/public/${iccCurrent}/${encodeURIComponent(iccSelected)}`,{method:'DELETE'}); iccClearEditor(); await iccLoadRecords(); await iccLoadDashboard();}catch(e){iccResult.textContent='ERROR: '+e.mesadmin;}}
+async function iccGlobalSearch(){const q=(iccSearch.value||'').trim(); if(!q)return; const hits=await iccApi('/api/public/search',{method:'POST',body:JSON.stringify({query:q})}); iccRecords.innerHTML=''; hits.forEach(h=>{const el=document.createElement('div'); el.className='iccRecord'; el.innerHTML=`<b>${esc(h.label)}</b><br><span class="muted small">${esc(iccRecordTitle(h.record))}</span><pre>${esc(JSON.stringify(h.record,null,2))}</pre>`; iccRecords.appendChild(el);});}
+window.addEventListener('load',()=>{iccSearch?.addEventListener('input',()=>{if(iccCurrent)iccLoadRecords();});});
+
+function normAccounts(c){return (c.accounts&&c.accounts.length)?c.accounts:[{name:'UtilityBot',host:c.host,port:c.port,username_or_email:c.username_or_email,auth_mode:c.auth_mode,enabled:true}]}
+async function loadConfig(){const c=await api('/api/config'); currentConfig=c; gui_host.value=c.gui_host||'0.0.0.0'; gui_port.value=c.gui_port||8081; casino_public_chat.value=String(!!c.casino_public_chat); auto_walk_home_after_pearl.value=String(!!c.auto_walk_home_after_pearl); waypoint_categories_text.dataset.touched=''; waypoint_categories_text.value=configuredWaypointCategories().join('\n'); updateWaypointCategoryList(); await loadWaypoints(); auto_walk_home_waypoint_id.innerHTML='<option value="">Choose saved waypoint</option>'+waypointCache.map(w=>`<option value="${escAttr(w.id)}">${esc(w.category||'Uncategorized')} / ${esc(w.label)} (${w.x}, ${w.y}, ${w.z})</option>`).join(''); auto_walk_home_waypoint_id.value=c.auto_walk_home_waypoint_id||''; if(typeof faq_whisper_add_enabled!=='undefined'){faq_whisper_add_enabled.value=String(c.faq_whisper_add_enabled!==false); faq_whisper_cooldown_seconds.value=c.faq_whisper_cooldown_seconds??60; faq_output_mode.value=c.faq_output_mode||'whisper'; login_greeter_enabled.value=String(c.login_greeter_enabled!==false); login_greeter_cooldown_seconds.value=c.login_greeter_cooldown_seconds??300; greeter_output_mode.value=c.greeter_output_mode||'whisper';} renderAccounts(normAccounts(c)); refreshBotDropdown();}
+function renderAccounts(rows){accounts.innerHTML=rows.map((a,i)=>`<tr data-i="${i}"><td><input class="acct_enabled" type="checkbox" ${a.enabled!==false?'checked':''}></td><td><input class="acct_name mini" value="${escAttr(a.name||('bot'+(i+1)))}"></td><td><input class="acct_host" value="${escAttr(a.host||'minecraft.example.org')}"></td><td><input class="acct_port mini" type="number" value="${a.port||25565}"></td><td><input class="acct_email wide" value="${escAttr(a.username_or_email||'')}"></td><td><select class="acct_auth"><option ${a.auth_mode==='microsoft'?'selected':''}>microsoft</option><option ${a.auth_mode==='offline'?'selected':''}>offline</option></select></td><td><button class="good" onclick="connectAccount('${escAttr(a.name||'UtilityBot')}')">Connect</button> <button onclick="removeAccountRow(${i})">Remove</button></td></tr>`).join(''); refreshBotDropdown();}
+function readAccounts(){return [...accounts.querySelectorAll('tr')].map(tr=>({enabled:tr.querySelector('.acct_enabled').checked,name:tr.querySelector('.acct_name').value.trim()||'UtilityBot',host:tr.querySelector('.acct_host').value.trim()||'minecraft.example.org',port:+tr.querySelector('.acct_port').value||25565,username_or_email:tr.querySelector('.acct_email').value.trim(),auth_mode:tr.querySelector('.acct_auth').value||'microsoft'}));}
+function addAccountRow(){const rows=readAccounts(); rows.push({enabled:true,name:'bot'+(rows.length+1),host:'minecraft.example.org',port:25565,username_or_email:'',auth_mode:'microsoft'}); renderAccounts(rows);}
+function removeAccountRow(i){const rows=readAccounts(); rows.splice(i,1); renderAccounts(rows);}
+function refreshBotDropdown(){const old=bot_name.value; const rows=accounts?readAccounts():normAccounts(currentConfig||{}); bot_name.innerHTML='<option value="">Any connected bot</option>'+rows.map(a=>`<option value="${escAttr(a.name)}">${esc(a.name)}</option>`).join(''); bot_name.value=old;}
+function readWaypointCategories(){const raw=(waypoint_categories_text?.value||'').split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean); const out=[]; for(const c of raw){if(!out.some(x=>x.toLowerCase()===c.toLowerCase()))out.push(c);} if(!out.some(x=>x.toLowerCase()==='uncategorized'))out.unshift('Uncategorized'); return out;}
+async function saveConfig(){const accountsList=readAccounts(); const first=accountsList[0]||{host:'minecraft.example.org',port:25565,username_or_email:'',auth_mode:'microsoft'}; const categories=readWaypointCategories(); const c={host:first.host,port:first.port,username_or_email:first.username_or_email,auth_mode:first.auth_mode,gui_host:gui_host.value||'0.0.0.0',gui_port:+gui_port.value||8081,pull_mode:'block',casino_public_chat:casino_public_chat.value==='true',auto_walk_home_after_pearl:auto_walk_home_after_pearl.value==='true',auto_walk_home_waypoint_id:auto_walk_home_waypoint_id.value||null,waypoint_categories:categories,faq_whisper_add_enabled:faq_whisper_add_enabled.value==='true',faq_whisper_cooldown_seconds:+faq_whisper_cooldown_seconds.value||0,faq_output_mode:faq_output_mode.value||'whisper',login_greeter_enabled:login_greeter_enabled.value==='true',login_greeter_cooldown_seconds:+login_greeter_cooldown_seconds.value||0,greeter_output_mode:greeter_output_mode.value||'whisper',accounts:accountsList}; const saved=await api('/api/config',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(c)}); currentConfig=saved||c; waypoint_categories_text.value=readWaypointCategories().join('\n'); waypoint_categories_text.dataset.touched=''; updateWaypointCategoryList(); refreshBotDropdown(); alert('Saved. Restart only needed if you changed GUI host/port.');}
+async function connectBot(){await saveConfig(); await api('/api/bot/connect',{method:'POST'}); setTimeout(statusLoop,500)}
+async function disconnectBot(){await api('/api/bot/disconnect',{method:'POST'}); statusLoop()}
+async function hardStopBot(){
+  if(!confirm('Hard Stop will close this bot GUI process completely, stop every bot runtime, then restart the EXE. Continue?')) return;
+  await api('/api/bot/hard-stop',{method:'POST'});
+  status.textContent='Hard stop requested. The bot process is exiting and will restart automatically.';
+}
+async function connectAccount(name){await saveConfig(); await api('/api/bot/accounts/'+encodeURIComponent(name)+'/connect',{method:'POST'}); setTimeout(statusLoop,500)}
+async function disconnectAccount(name){await api('/api/bot/accounts/'+encodeURIComponent(name)+'/disconnect',{method:'POST'}); setTimeout(statusLoop,500)}
+async function statusLoop(){if(!me)return;try{const s=await api('/api/bot/status'); s.fetched_at=Date.now(); botStatusCache=s; let line=(s.connected?'Connected':'Not connected')+' - '+esc(s.mesadmin); if(s.bots&&s.bots.length){line+='<br>'+s.bots.map(b=>`<span class="pill">${esc(b.name)}: ${b.connected?'online':'offline'} ${esc(b.username||'')} ${b.x!=null?`(${Math.round(b.x)}, ${Math.round(b.y)}, ${Math.round(b.z)})`:''}</span>`).join(' ')} if(s.login_help)line+='<br><span class="warn">'+esc(s.login_help)+'</span>'; status.innerHTML=line; if(activePage==='viewport'){drawViewport(); logViewportStatus(s); maybeRefreshViewportForMovingBot(true);}}catch(e){status.textContent=e.mesadmin}}
+async function loadBankBalances(){try{if(typeof bankEditorCard!=='undefined')bankEditorCard.classList.toggle('hidden',me?.role!=='owner'); const rows=await api('/api/bank/balances'); bankBalanceRows.innerHTML=rows.map(r=>`<tr><td>${esc(r.username)}</td><td class="priceTag">${r.credits}</td><td>${me?.role==='owner'?`<button onclick="editBankBalance('${escAttr(r.username)}',${r.credits})">Edit</button>`:''}</td></tr>`).join('')||'<tr><td colspan=3 class="muted">No balances yet.</td></tr>';}catch(e){bankBalanceRows.innerHTML=`<tr><td colspan=3 class="warn">${esc(e.mesadmin)}</td></tr>`}}
+function editBankBalance(username,credits){bank_edit_user.value=username; bank_edit_amount.value=credits;}
+function clearBankEditor(){bank_edit_user.value=''; bank_edit_amount.value=0;}
+async function saveBankBalance(){try{await api('/api/bank/balances',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({username:bank_edit_user.value,credits:+bank_edit_amount.value||0})}); await loadBankBalances();}catch(e){alert(e.mesadmin)}}
+async function loadUsers(){const rows=await api('/api/users'); users.innerHTML=rows.map(u=>`<tr><td>${esc(u.username)}</td><td>${esc(u.role)}</td><td>${esc(u.minecraft_name||'')}</td><td>${esc(u.discord_name||'')}</td><td>${esc((u.permissions||[]).join(', '))}</td><td><button onclick="editUserFromList('${escAttr(u.username)}')">Edit</button> <button class="danger" onclick="delUser('${escAttr(u.username)}')">Delete</button></td></tr>`).join('')||'<tr><td colspan=6 class="muted">No users.</td></tr>'; window._userRows=rows;}
+async function saveUser(){const permissions=['bank','bounty','book_writer','shop','faq_whisper'].filter(k=>document.getElementById('perm_'+k)?.checked); const body={username:new_username.value,password:new_password.value,role:new_role.value,minecraft_name:new_mc.value,discord_name:new_discord.value,permissions}; const url=editingUser?'/api/users/'+encodeURIComponent(editingUser):'/api/users'; const method=editingUser?'PUT':'POST'; if(editingUser&&!body.password)delete body.password; await api(url,{method,headers:{'content-type':'application/json'},body:JSON.stringify(body)}); cancelUserEdit(); await loadUsers();}
+function editUserFromList(username){const u=(window._userRows||[]).find(x=>x.username===username); if(!u)return; editUser(u.username,u.role,u.minecraft_name,u.discord_name,u.permissions||[]);} function editUser(username,role,minecraft,discord,permissions=[]){editingUser=username; new_username.value=username; new_username.disabled=true; new_password.value=''; new_password.placeholder='Leave blank to keep current password'; new_role.value=role||'user'; new_mc.value=minecraft||''; new_discord.value=discord||''; ['bank','bounty','book_writer','shop','faq_whisper'].forEach(k=>{const el=document.getElementById('perm_'+k); if(el)el.checked=(permissions||[]).includes(k);}); user_save_btn.textContent='Update Login'; user_cancel_btn.classList.remove('hidden');}
+function cancelUserEdit(){editingUser=null; new_username.disabled=false; new_username.value=''; new_password.value=''; new_password.placeholder=''; new_role.value='user'; new_mc.value=''; new_discord.value=''; ['bank','bounty','book_writer','shop','faq_whisper'].forEach(k=>{const el=document.getElementById('perm_'+k); if(el)el.checked=false;}); user_save_btn.textContent='Create Login'; user_cancel_btn.classList.add('hidden');}
+async function delUser(username){await api('/api/users/'+encodeURIComponent(username),{method:'DELETE'}); await loadUsers();}
+async function loadPearls(){const rows=await api('/api/pearls'); pearlCache=rows; pearls.innerHTML=rows.map(p=>`<tr><td>${esc(p.player)}</td><td>${esc(p.owner_user||'')}</td><td>${esc(p.bot_name||'any')}</td><td>${esc((p.allowed_users||[]).join(', '))}</td><td>${esc(p.stasis_kind||'block')}</td><td>${esc(p.label)}<br><span class="small muted">${esc(p.item_name||'')}</span></td><td>${p.x}, ${p.y}, ${p.z}<br><span class="small muted">inventory ${p.inventory_slot??p.hotbar_slot??0}</span></td><td>${esc(p.notes||'')}</td><td><button class="good" onclick="pullPearl('${p.id}')">Pull Block</button> <button onclick="throwStasis('${p.id}')">ThrowStasis</button> <button class="danger" onclick="haltBotAction()">Halt</button> <button class="danger" onclick="delPearl('${p.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan=9 class="muted">No pearls yet. Open Settings to add one.</td></tr>'; if(activePage==='viewport') drawViewport();}
+async function addPearl(){const body={player:player.value,label:label.value,bot_name:bot_name.value,stasis_kind:stasis_kind.value,item_name:item_name.value,inventory_slot:+inventory_slot.value,x:+x.value,y:+y.value,z:+z.value,notes:notes.value,allowed_users:allowed_users.value.split(',').map(s=>s.trim()).filter(Boolean)}; await api('/api/pearls',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}); await loadPearls(); showPage('pull');}
+async function delPearl(id){await api('/api/pearls/'+id,{method:'DELETE'}); await loadPearls();}
+async function pullPearl(id){const p=pearlCache.find(x=>x.id===id); try{activeWalkLabel=`pearl ${p?.label||p?.player||id}`; viewportLog(`Pearl pull walk started: ${p?`${p.x}, ${p.y}, ${p.z}`:id}`); await api('/api/pearls/'+id+'/pull',{method:'POST'}); viewportLog(`Pearl pull complete: ${p?.label||id}`); pingViewport(); activeWalkLabel=null; setTimeout(statusLoop,300); setTimeout(()=>requestWorldSnapshot(true),600)}catch(e){activeWalkLabel=null; viewportLog(`Pearl pull failed: ${e.mesadmin}`); alert(e.mesadmin)}}
+async function throwStasis(id){try{await api('/api/pearls/'+id+'/throw',{method:'POST'}); setTimeout(statusLoop,300)}catch(e){alert(e.mesadmin)}}
+
+async function haltBotAction(){
+  try{
+    const out=await api('/api/bot/halt',{method:'POST'});
+    status.textContent=out.mesadmin||'Halt requested.';
+    viewportLog(out.mesadmin||'Halt requested.');
+    activeWalkLabel=null;
+    setTimeout(statusLoop,300);
+  }catch(e){alert(e.mesadmin)}
+}
+
+function configuredWaypointCategories(){return (currentConfig&&Array.isArray(currentConfig.waypoint_categories))?currentConfig.waypoint_categories.filter(c=>String(c||'').trim()):['Uncategorized'];}
+function waypointCategories(){const set=new Set(['Uncategorized']); for(const c of configuredWaypointCategories()){const v=String(c||'').trim(); if(v)set.add(v);} if(typeof waypoint_categories_text!=='undefined'&&waypoint_categories_text){for(const c of readWaypointCategories()){const v=String(c||'').trim(); if(v)set.add(v);}} for(const w of waypointCache||[]){const v=String(w.category||'').trim(); if(v)set.add(v);} for(const p of pearlCache||[]){const v=String(p.category||'').trim(); if(v)set.add(v);} for(const l of ledgerChestCache||[]){const v=String(l.category||'').trim(); if(v)set.add(v);} for(const c of butlerChestCache||[]){const v=String(c.category||'').trim(); if(v)set.add(v);} for(const w of butlerWaypointCache||[]){const v=String(w.category||'').trim(); if(v)set.add(v);} return [...set].sort((a,b)=>a.localeCompare(b));}
+function fillCategorySelect(sel, includeBlank=false, blankText='Select a category...'){if(!sel)return; const old=sel.value; const opts=(includeBlank?`<option value="">${esc(blankText)}</option>`:'')+waypointCategories().map(c=>`<option value="${escAttr(c)}">${esc(c)}</option>`).join(''); sel.innerHTML=opts; if([...sel.options].some(o=>o.value===old))sel.value=old; else if(!includeBlank)sel.value='Uncategorized';}
+function updateWaypointCategoryList(){const dl=document.getElementById('waypointCategoryList'); if(dl)dl.innerHTML=waypointCategories().map(c=>`<option value="${escAttr(c)}"></option>`).join(''); fillCategorySelect(document.getElementById('hub_category')); fillCategorySelect(document.getElementById('waypoint_category')); fillCategorySelect(document.getElementById('hub_category_filter'), true); fillCategorySelect(document.getElementById('waypoint_category_filter'), true);}
+function groupedWaypointRows(rows){const selected=document.getElementById('waypoint_category_filter')?.value||''; if(!selected)return '<tr><td colspan="6" class="muted">Select a category to show waypoints.</td></tr>'; rows=(rows||[]).filter(w=>(w.category||'Uncategorized')===selected); if(!rows.length)return '<tr><td colspan="6" class="muted">No waypoints in this category.</td></tr>'; return rows.map(w=>`<tr><td>${esc(w.category||'Uncategorized')}</td><td>${esc(w.label)}</td><td>${esc(w.bot_name||'any')}</td><td>${w.x}, ${w.y||'any'}, ${w.z}</td><td>${esc(w.notes||'')}</td><td><button class="good" onclick="walkWaypoint('${w.id}')">Walk</button> <button class="danger" onclick="haltBotAction()">Halt</button> <button onclick="centerOnWaypoint('${w.id}')">Select</button> <button onclick="editWaypoint('${w.id}')">Edit</button> <button class="danger" onclick="deleteWaypoint('${w.id}')">Delete</button></td></tr>`).join('');}
+function renderWalkWaypoints(){if(typeof waypoints!=='undefined')waypoints.innerHTML=groupedWaypointRows(waypointCache||[]);}
+async function loadWaypoints(){if(!me)return; const rows=await api('/api/waypoints'); waypointCache=rows; updateWaypointCategoryList(); renderWalkWaypoints(); if(activePage==='viewport')drawViewport();}
+function waypointBody(){return {label:waypoint_label.value,category:waypoint_category.value||'Uncategorized',bot_name:waypoint_bot.value,x:Math.floor(+waypoint_x.value||0),y:Math.floor(+waypoint_y.value||0),z:Math.floor(+waypoint_z.value||0),notes:waypoint_notes.value};}
+async function saveWaypoint(){try{const body=waypointBody(); const url=editingWaypointId?'/api/waypoints/'+editingWaypointId:'/api/waypoints'; const method=editingWaypointId?'PUT':'POST'; await api(url,{method,headers:{'content-type':'application/json'},body:JSON.stringify(body)}); viewportLog(`${editingWaypointId?'Updated':'Added'} waypoint '${body.label}' at ${body.x}, ${body.y||'any'}, ${body.z}`); cancelWaypointEdit(); await loadWaypoints();}catch(e){alert(e.mesadmin)}}
+function editWaypoint(id){const w=waypointCache.find(x=>x.id===id); if(!w)return; editingWaypointId=id; waypoint_label.value=w.label||''; waypoint_category.value=w.category||'Uncategorized'; waypoint_bot.value=w.bot_name||'UtilityBot'; waypoint_x.value=w.x||0; waypoint_y.value=w.y||0; waypoint_z.value=w.z||0; waypoint_notes.value=w.notes||''; waypoint_save_btn.textContent='Update Waypoint'; waypoint_cancel_btn.classList.remove('hidden');}
+function cancelWaypointEdit(){editingWaypointId=null; waypoint_label.value=''; waypoint_category.value='Uncategorized'; waypoint_notes.value=''; waypoint_save_btn.textContent='Add Waypoint'; waypoint_cancel_btn.classList.add('hidden');}
+async function deleteWaypoint(id){await api('/api/waypoints/'+id,{method:'DELETE'}); await loadWaypoints();}
+async function walkWaypoint(id){const w=waypointCache.find(x=>x.id===id); const label=w?.label||id; try{activeWalkLabel=label; viewportLog(`Walk started: '${label}' -> ${w?`${w.x}, ${w.y||'any'}, ${w.z}`:''}`); const out=await api('/api/waypoints/'+id+'/walk',{method:'POST'}); status.textContent=out.mesadmin; viewportLog(`Walk complete: ${out.mesadmin||label}`); pingViewport(); activeWalkLabel=null; setTimeout(statusLoop,300); setTimeout(()=>requestWorldSnapshot(true),600)}catch(e){activeWalkLabel=null; viewportLog(`Walk failed: ${e.mesadmin}`); alert(e.mesadmin)}}
+function centerOnWaypoint(id){const w=waypointCache.find(x=>x.id===id); if(!w)return; editWaypoint(id); viewportLog(`Selected waypoint '${w.label}' at ${w.x}, ${w.y||'any'}, ${w.z}`);}
+function fillWaypointFromBot(){const b=(botStatusCache?.bots||[]).find(b=>b.connected&&b.x!=null&&b.y!=null&&b.z!=null); if(!b)return alert('No bot position available yet.'); waypoint_bot.value=b.name||'UtilityBot'; waypoint_x.value=Math.floor(b.x); waypoint_y.value=Math.floor(b.y); waypoint_z.value=Math.floor(b.z);}
+async function saveWaypointFromBot(){const b=(botStatusCache?.bots||[]).find(b=>b.connected&&b.x!=null&&b.y!=null&&b.z!=null); if(!b)return alert('No bot position available yet.'); const label=prompt('Waypoint label',`${b.name||'bot'} current location`); if(!label)return; const body={label,category:waypoint_category?.value||'Uncategorized',bot_name:b.name||'UtilityBot',x:Math.floor(b.x),y:Math.floor(b.y),z:Math.floor(b.z),notes:'saved from current bot location'}; await api('/api/waypoints',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}); await loadWaypoints();}
+function updateHubTypeFields(){const type=hub_type.value; hubBankFields.classList.toggle('hidden',type!=='banking'); hubPearlFields.classList.toggle('hidden',type!=='pearl'); hubWalkFields.classList.toggle('hidden',!(type==='walk'||type==='pearl'));}
+async function loadAllWaypointStores(){if(!me||me.role!=='owner')return; waypointCache=await api('/api/waypoints'); pearlCache=await api('/api/pearls'); ledgerChestCache=await api('/api/ledger-chests'); butlerChestCache=await api('/api/butler/chests'); butlerWaypointCache=await api('/api/butler/waypoints'); updateWaypointCategoryList(); renderLedgerSelect(); renderButlerSelects(); renderAllWaypoints(); if(activePage==='viewport')drawViewport();}
+function allWaypointRows(){const rows=[]; const order={walk:10,pearl:15,banking:20,writer:30,butler_source:40,butler_destination:50}; for(const w of waypointCache)rows.push({type:'walk',title:'Walk',category:w.category||'Uncategorized',id:w.id,label:w.label,bot:w.bot_name||'UtilityBot',x:w.x,y:w.y,z:w.z,details:w.notes||''}); for(const p of pearlCache)rows.push({type:'pearl',title:'Stasis Pearl',category:p.category||'Uncategorized',id:p.id,label:p.label,bot:p.bot_name||'UtilityBot',x:p.x,y:p.y,z:p.z,details:`Owner: ${p.player||'unknown'} | Type: ${p.stasis_kind||'block'} | Item: ${p.item_name||'any'} | Slot ${p.inventory_slot??0} | Allowed: ${(p.allowed_users||[]).join(', ')||'owner only'}${p.notes?' | '+p.notes:''}`}); for(const l of ledgerChestCache){const p=(l.purpose||'banking')==='writing'?'writer':'banking'; const trash=(l.processed_chest_x==null||l.processed_chest_y==null||l.processed_chest_z==null)?'Trash/archive: none':`Trash/archive: ${l.processed_chest_x}, ${l.processed_chest_y}, ${l.processed_chest_z}`; const details=p==='writer'?'Book writer destination chest':`${trash} | Allowed: ${(l.allowed_players||[]).join(', ')||'none'} | Range ${l.min_credits}-${l.max_credits}`; rows.push({type:p,title:p==='writer'?'Book Writer Chest':'Bank Intake Chest',category:l.category||'Uncategorized',id:l.id,label:l.label,bot:l.bot_name||'UtilityBot',x:l.chest_x,y:l.chest_y,z:l.chest_z,details});} for(const c of butlerChestCache)rows.push({type:'butler_source',title:'Butler Source Chest',category:c.category||'Uncategorized',id:c.id,label:c.label,bot:c.bot_name||'UtilityBot',x:c.chest_x,y:c.chest_y,z:c.chest_z,details:'Renamed shulkers are taken from here'}); for(const w of butlerWaypointCache)rows.push({type:'butler_destination',title:'Butler Destination Chest',category:w.category||'Uncategorized',id:w.id,label:w.label,bot:w.bot_name||'UtilityBot',x:w.chest_x,y:w.chest_y,z:w.chest_z,details:'Renamed shulkers are delivered here'}); return rows.sort((a,b)=>(a.category||'').localeCompare(b.category||'')||(order[a.type]||99)-(order[b.type]||99)||a.label.localeCompare(b.label));}
+function renderAllWaypoints(){const selected=document.getElementById('hub_category_filter')?.value||''; if(!selected){allWaypoints.innerHTML='<tr><td colspan="7" class="muted">Select a category to show waypoints.</td></tr>'; return;} const rows=allWaypointRows().filter(w=>(w.category||'Uncategorized')===selected); allWaypoints.innerHTML=rows.map(w=>`<tr><td>${esc(w.category||'Uncategorized')}</td><td><span class="pill">${esc(w.title)}</span></td><td>${esc(w.label)}</td><td>${esc(w.bot)}</td><td>${w.x}, ${w.y||'any'}, ${w.z}</td><td>${esc(w.details||'')}</td><td>${hubActions(w)}</td></tr>`).join('')||'<tr><td colspan="7" class="muted">No waypoints in this category.</td></tr>';}
+function hubActions(w){let walk=''; if(w.type==='walk')walk=` <button class="good" onclick="walkWaypoint('${w.id}')">Walk To</button>`; if(w.type==='writer'||w.type==='banking')walk=` <button class="good" onclick="walkLedgerChest('${w.id}')">Walk To</button>`; if(w.type==='butler_source')walk=` <button class="good" onclick="walkButlerChest('${w.id}')">Walk To</button>`; if(w.type==='butler_destination')walk=` <button class="good" onclick="walkButlerWaypoint('${w.id}')">Walk To</button>`; return `${walk} <button onclick="editHubWaypoint('${w.type}','${w.id}')">Edit</button> <button class="danger" onclick="deleteHubWaypoint('${w.type}','${w.id}')">Delete</button>`;}
+function fillHubFromBot(){const b=(botStatusCache?.bots||[]).find(b=>b.connected&&b.x!=null&&b.y!=null&&b.z!=null); if(!b)return alert('No bot position available yet.'); hub_bot.value=b.name||'UtilityBot'; hub_x.value=Math.floor(b.x); hub_y.value=Math.floor(b.y); hub_z.value=Math.floor(b.z);}
+function hubBaseBody(){return {label:hub_label.value,category:hub_category.value||'Uncategorized',bot_name:hub_bot.value,chest_x:Math.floor(+hub_x.value||0),chest_y:Math.floor(+hub_y.value||64),chest_z:Math.floor(+hub_z.value||0)}}
+function hubLedgerBody(purpose){return {purpose,label:hub_label.value,category:hub_category.value||'Uncategorized',bot_name:hub_bot.value,chest_x:Math.floor(+hub_x.value||0),chest_y:Math.floor(+hub_y.value||64),chest_z:Math.floor(+hub_z.value||0),processed_chest_x:optInt(hub_processed_x),processed_chest_y:optInt(hub_processed_y),processed_chest_z:optInt(hub_processed_z),allowed_players:hub_allowed.value.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean),min_credits:+hub_min.value||1,max_credits:+hub_max.value||100000000,remove_processed_book:hub_remove.checked};}
+async function saveHubWaypoint(){try{const type=hub_type.value; let url='', body={}, method=editingHub?'PUT':'POST'; if(type==='walk'){url=editingHub?'/api/waypoints/'+editingHub.id:'/api/waypoints'; body={label:hub_label.value,category:hub_category.value||'Uncategorized',bot_name:hub_bot.value,x:Math.floor(+hub_x.value||0),y:Math.floor(+hub_y.value||0),z:Math.floor(+hub_z.value||0),notes:hub_notes.value};} if(type==='pearl'){url=editingHub?'/api/pearls/'+editingHub.id:'/api/pearls'; body={player:hub_pearl_player.value,label:hub_label.value,category:hub_category.value||'Uncategorized',bot_name:hub_bot.value,stasis_kind:hub_pearl_kind.value,item_name:hub_pearl_item.value,inventory_slot:+hub_pearl_slot.value||0,x:Math.floor(+hub_x.value||0),y:Math.floor(+hub_y.value||64),z:Math.floor(+hub_z.value||0),notes:hub_notes.value,allowed_users:hub_pearl_allowed.value.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean)};} if(type==='writer'||type==='banking'){url=editingHub?'/api/ledger-chests/'+editingHub.id:'/api/ledger-chests'; body=hubLedgerBody(type==='writer'?'writing':'banking');} if(type==='butler_source'){url=editingHub?'/api/butler/chests/'+editingHub.id:'/api/butler/chests'; body=hubBaseBody();} if(type==='butler_destination'){url=editingHub?'/api/butler/waypoints/'+editingHub.id:'/api/butler/waypoints'; body=hubBaseBody();} await api(url,{method,headers:{'content-type':'application/json'},body:JSON.stringify(body)}); cancelHubEdit(); await loadPearls(); await loadAllWaypointStores();}catch(e){alert(e.mesadmin)}}
+function editHubWaypoint(type,id){const row=allWaypointRows().find(w=>w.type===type&&w.id===id); if(!row)return; editingHub={type,id}; hub_type.value=type; updateHubTypeFields(); hub_label.value=row.label; hub_category.value=row.category||'Uncategorized'; hub_bot.value=row.bot; hub_x.value=row.x; hub_y.value=row.y; hub_z.value=row.z; hub_notes.value=''; hub_processed_x.value=''; hub_processed_y.value=''; hub_processed_z.value=''; hub_allowed.value=''; hub_min.value=1; hub_max.value=100000000; hub_remove.checked=true; hub_pearl_player.value=''; hub_pearl_kind.value='block'; hub_pearl_item.value=''; hub_pearl_slot.value=0; hub_pearl_allowed.value=''; if(type==='walk'){const w=waypointCache.find(x=>x.id===id); hub_notes.value=w?.notes||''; hub_category.value=w?.category||'Uncategorized';} if(type==='pearl'){const p=pearlCache.find(x=>x.id===id); hub_category.value=p?.category||'Uncategorized'; hub_pearl_player.value=p?.player||''; hub_pearl_kind.value=p?.stasis_kind||'block'; hub_pearl_item.value=p?.item_name||''; hub_pearl_slot.value=p?.inventory_slot??0; hub_pearl_allowed.value=(p?.allowed_users||[]).join('\n'); hub_notes.value=p?.notes||'';} if(type==='writer'||type==='banking'){const l=ledgerChestCache.find(x=>x.id===id); hub_category.value=l?.category||'Uncategorized'; hub_processed_x.value=l?.processed_chest_x??''; hub_processed_y.value=l?.processed_chest_y??''; hub_processed_z.value=l?.processed_chest_z??''; hub_allowed.value=(l?.allowed_players||[]).join('\n'); hub_min.value=l?.min_credits||1; hub_max.value=l?.max_credits||100000000; hub_remove.checked=l?.remove_processed_book!==false;} if(type==='butler_source'){const c=butlerChestCache.find(x=>x.id===id); hub_category.value=c?.category||'Uncategorized';} if(type==='butler_destination'){const bw=butlerWaypointCache.find(x=>x.id===id); hub_category.value=bw?.category||'Uncategorized';} hub_save_btn.textContent='Update Waypoint'; hub_cancel_btn.classList.remove('hidden'); showPage('waypointHub');}
+function cancelHubEdit(){editingHub=null; hub_type.value='walk'; hub_label.value=''; hub_category.value='Uncategorized'; hub_bot.value='UtilityBot'; hub_x.value=0; hub_y.value=64; hub_z.value=0; hub_notes.value=''; hub_pearl_player.value=''; hub_pearl_kind.value='block'; hub_pearl_item.value=''; hub_pearl_slot.value=0; hub_pearl_allowed.value=''; hub_processed_x.value=''; hub_processed_y.value=''; hub_processed_z.value=''; hub_allowed.value=''; hub_min.value=1; hub_max.value=100000000; hub_remove.checked=true; hub_save_btn.textContent='Add Waypoint'; hub_cancel_btn.classList.add('hidden'); updateHubTypeFields();}
+async function deleteHubWaypoint(type,id){if(!confirm('Delete this waypoint?'))return; const url=type==='walk'?'/api/waypoints/'+id:(type==='pearl'?'/api/pearls/'+id:(type==='writer'||type==='banking'?'/api/ledger-chests/'+id:(type==='butler_source'?'/api/butler/chests/'+id:'/api/butler/waypoints/'+id))); await api(url,{method:'DELETE'}); if(type==='pearl')await loadPearls(); await loadAllWaypointStores();}
+async function loadCasinoBalance(){if(!me)return;try{const b=await api('/api/casino/balance'); casinoBalance.textContent=`Credits: ${b.credits}`;}catch(e){casinoBalance.textContent=e.mesadmin}}
+function casinoResult(text,balance){casinoOutput.textContent=text; if(balance) casinoBalance.textContent=`Credits: ${balance.credits}`;}
+async function playRoulette(){try{const r=await api('/api/casino/roulette',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({bet:+roulette_bet.value,choice:roulette_choice.value})}); casinoResult(r.mesadmin,r.balance)}catch(e){casinoResult(e.mesadmin)}}
+async function playSlots(){try{const r=await api('/api/casino/slots',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({bet:+slots_bet.value})}); casinoResult(r.mesadmin,r.balance)}catch(e){casinoResult(e.mesadmin)}}
+async function startBlackjack(){try{const r=await api('/api/casino/blackjack/start',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({bet:+blackjack_bet.value})}); showBlackjack(r)}catch(e){casinoResult(e.mesadmin)}}
+async function hitBlackjack(){try{const r=await api('/api/casino/blackjack/hit',{method:'POST'}); showBlackjack(r)}catch(e){casinoResult(e.mesadmin)}}
+async function standBlackjack(){try{const r=await api('/api/casino/blackjack/stand',{method:'POST'}); showBlackjack(r)}catch(e){casinoResult(e.mesadmin)}}
+function showBlackjack(r){const dealer=r.dealer_total===null?'?':r.dealer_total; casinoResult(`${r.mesadmin} Player: ${r.player_cards.join(', ')} = ${r.player_total}. Dealer: ${r.dealer_cards.join(', ')} = ${dealer}.`,r.balance)}
+async function loadVipTable(){try{const rows=await api('/api/vip/table'); vipRows.innerHTML=rows.map(r=>`<tr><td>${r.rank}</td><td><a href="${profileLink(r.username)}" target="_blank" rel="noopener"><img class="mcHead" src="${skinHead(r.username)}" onerror="skinHeadFallback(this,'${escAttr(r.username)}')" alt=""></a>${esc(r.username)}</td><td class="priceTag">${r.credits}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">No Credits balances yet.</td></tr>';}catch(e){vipRows.innerHTML=`<tr><td colspan="3" class="warn">${esc(e.mesadmin)}</td></tr>`}}
+async function loadShopItems(){try{shopOwnerForm.classList.toggle('hidden',me?.role!=='owner'); shopCache=await api('/api/shop/items'); shopRows.innerHTML=shopCache.filter(i=>i.enabled||me?.role==='owner').map(i=>{const reward=i.reward_type==='discord_role'?`Discord role${i.discord_role_name?' · '+esc(i.discord_role_name):''}${i.discord_role_id?' · '+esc(i.discord_role_id):''}`:esc(i.reward_type||'manual'); return `<tr><td><b>${esc(i.name)}</b><br><span class="small muted">${i.enabled?'Enabled':'Hidden'}</span></td><td>${esc(i.description||'')}<br><span class="small muted">${esc(i.command_hint||'')}</span></td><td>${reward}</td><td class="priceTag">${i.price} Credits</td><td>${me?.role==='owner'?`<button onclick="editShopItem('${i.id}')">Edit</button> <button class="danger" onclick="deleteShopItem('${i.id}')">Delete</button>`:'<span class="muted small">Use /shop buy in Discord.</span>'}</td></tr>`}).join('')||'<tr><td colspan="5" class="muted">No shop items yet.</td></tr>';}catch(e){shopRows.innerHTML=`<tr><td colspan="5" class="warn">${esc(e.mesadmin)}</td></tr>`}}
+async function saveShopItem(){try{const body={name:shop_name.value,description:shop_description.value,price:+shop_price.value||0,command_hint:shop_command.value,reward_type:shop_reward_type.value,discord_role_id:shop_discord_role_id.value,discord_role_name:shop_discord_role_name.value,enabled:shop_enabled.value==='true'}; const url=editingShopId?'/api/shop/items/'+editingShopId:'/api/shop/items'; const method=editingShopId?'PUT':'POST'; await api(url,{method,headers:{'content-type':'application/json'},body:JSON.stringify(body)}); cancelShopEdit(); await loadShopItems();}catch(e){alert(e.mesadmin)}}
+function editShopItem(id){const i=shopCache.find(x=>x.id===id); if(!i)return; editingShopId=id; shop_name.value=i.name||''; shop_description.value=i.description||''; shop_price.value=i.price||1; shop_command.value=i.command_hint||''; shop_reward_type.value=i.reward_type||'manual'; shop_discord_role_id.value=i.discord_role_id||''; shop_discord_role_name.value=i.discord_role_name||''; shop_enabled.value=String(i.enabled!==false); shop_save_btn.textContent='Update Shop Item'; shop_cancel_btn.classList.remove('hidden');}
+function cancelShopEdit(){editingShopId=null; shop_name.value=''; shop_description.value=''; shop_price.value=1000; shop_command.value=''; shop_reward_type.value='manual'; shop_discord_role_id.value=''; shop_discord_role_name.value=''; shop_enabled.value='true'; shop_save_btn.textContent='Add Shop Item'; shop_cancel_btn.classList.add('hidden');}
+async function deleteShopItem(id){if(!confirm('Delete this shop item?'))return; await api('/api/shop/items/'+id,{method:'DELETE'}); await loadShopItems();}
+async function loadBounties(){try{bountyOwnerForm.classList.toggle('hidden',me?.role!=='owner'); bountyCache=await api('/api/bounties'); bountyRows.innerHTML=bountyCache.map(b=>`<tr><td><a href="${profileLink(b.target)}" target="_blank" rel="noopener"><img class="mcHead" src="${skinHead(b.target)}" onerror="skinHeadFallback(this,'${escAttr(b.target)}')" alt=""></a><a href="${profileLink(b.target)}" target="_blank" rel="noopener">${esc(b.target)}</a></td><td><span class="pill">${statusLabel(b.status)}</span></td><td class="priceTag">${b.reward} Credits</td><td>${esc(b.posted_by||'')}</td><td>${esc(b.note||'')}</td><td>${me?.role==='owner'?`<button onclick="editBounty('${b.id}')">Edit</button> <button class="danger" onclick="deleteBounty('${b.id}')">Delete</button>`:''}</td></tr>`).join('')||'<tr><td colspan="6" class="muted">No bounties posted yet.</td></tr>';}catch(e){bountyRows.innerHTML=`<tr><td colspan="6" class="warn">${esc(e.mesadmin)}</td></tr>`}}
+async function saveBounty(){try{const body={target:bounty_target.value,reward:+bounty_reward.value||0,note:bounty_note.value,status:bounty_status.value}; const url=editingBountyId?'/api/bounties/'+editingBountyId:'/api/bounties'; const method=editingBountyId?'PUT':'POST'; await api(url,{method,headers:{'content-type':'application/json'},body:JSON.stringify(body)}); cancelBountyEdit(); await loadBounties();}catch(e){alert(e.mesadmin)}}
+function editBounty(id){const b=bountyCache.find(x=>x.id===id); if(!b)return; editingBountyId=id; bounty_target.value=b.target||''; bounty_reward.value=b.reward||1; bounty_note.value=b.note||''; bounty_status.value=b.status||'open'; bounty_save_btn.textContent='Update Bounty'; bounty_cancel_btn.classList.remove('hidden');}
+function cancelBountyEdit(){editingBountyId=null; bounty_target.value=''; bounty_reward.value=1000; bounty_note.value=''; bounty_status.value='open'; bounty_save_btn.textContent='Add Bounty'; bounty_cancel_btn.classList.add('hidden');}
+async function deleteBounty(id){if(!confirm('Delete this bounty?'))return; await api('/api/bounties/'+id,{method:'DELETE'}); await loadBounties();}
+function statusLabel(status){return ({open:'Open',in_progress:'In Progress',completed:'Completed',cancelled:'Cancelled'})[String(status||'open')]||'Open';}
+function skinHead(name){return `https://mc-heads.net/avatar/${encodeURIComponent(String(name||'Steve'))}/64`;}
+function skinHeadFallback(img,name){img.onerror=null; img.src=`https://crafthead.net/avatar/${encodeURIComponent(String(name||'Steve'))}/64`;}
+function profileLink(name){return `https://namemc.com/profile/${encodeURIComponent(String(name||'Steve'))}`;}
+function optInt(el){const v=el.value.trim(); return v===''?null:Math.floor(+v||0);}
+function ledgerBody(){return {
+  purpose:ledger_purpose.value||'banking',
+  label:ledger_label.value,
+  bot_name:ledger_bot.value,
+  chest_x:Math.floor(+ledger_x.value||0),
+  chest_y:Math.floor(+ledger_y.value||64),
+  chest_z:Math.floor(+ledger_z.value||0),
+  processed_chest_x:optInt(ledger_processed_x),
+  processed_chest_y:optInt(ledger_processed_y),
+  processed_chest_z:optInt(ledger_processed_z),
+  allowed_players:ledger_allowed.value.split(/\r?\n|,/).map(s=>s.trim()).filter(Boolean),
+  min_credits:+ledger_min.value||1,
+  max_credits:+ledger_max.value||100000000,
+  remove_processed_book:ledger_remove.checked
+};}
+function renderLedgerSelect(){
+  const writerChests=ledgerChestCache.filter(l=>(l.purpose||'banking')==='writing');
+  const opts='<option value="">Manual chest coords</option>'+writerChests.map(l=>`<option value="${l.id}">${esc(l.label)} (${l.chest_x}, ${l.chest_y}, ${l.chest_z})</option>`).join('');
+  if(book_ledger_select) book_ledger_select.innerHTML=opts;
+  const banks=ledgerChestCache.filter(l=>(l.purpose||'banking')!=='writing');
+  if(bank_ledger_select) bank_ledger_select.innerHTML=banks.map(l=>`<option value="${l.id}">${esc(l.label)} (${l.chest_x}, ${l.chest_y}, ${l.chest_z})</option>`).join('');
+}
+async function loadLedgerChests(){
+  if(!me||me.role!=='owner')return;
+  ledgerChestCache=await api('/api/ledger-chests');
+  const writers=ledgerChestCache.filter(l=>(l.purpose||'banking')==='writing');
+  const banking=ledgerChestCache.filter(l=>(l.purpose||'banking')!=='writing');
+  writerChests.innerHTML=writers.map(l=>`<tr><td>${esc(l.label)}</td><td>${esc(l.bot_name||'UtilityBot')}</td><td>${l.chest_x}, ${l.chest_y}, ${l.chest_z}</td><td><button class="good" onclick="walkLedgerChest('${l.id}')">Walk To</button> <button onclick="applyLedgerToBook('${l.id}')">Use For Book</button> <button onclick="editLedgerChest('${l.id}')">Edit</button> <button class="danger" onclick="deleteLedgerChest('${l.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="4" class="muted">No writer chests saved yet.</td></tr>';
+  bankingChests.innerHTML=banking.map(l=>{
+    const processed=(l.processed_chest_x==null||l.processed_chest_y==null||l.processed_chest_z==null)?'none':`${l.processed_chest_x}, ${l.processed_chest_y}, ${l.processed_chest_z}`;
+    return `<tr><td>${esc(l.label)}</td><td>${esc(l.bot_name||'UtilityBot')}</td><td>${l.chest_x}, ${l.chest_y}, ${l.chest_z}</td><td>${processed}</td><td>${l.min_credits}-${l.max_credits}</td><td><button class="good" onclick="walkLedgerChest('${l.id}')">Walk To</button> <button class="good" onclick="processLedgerChest('${l.id}')">Walk + Run Bank</button> <button onclick="editLedgerChest('${l.id}')">Edit</button> <button class="danger" onclick="deleteLedgerChest('${l.id}')">Delete</button></td></tr>`;
+  }).join('')||'<tr><td colspan="6" class="muted">No banking chests saved yet.</td></tr>';
+  renderLedgerSelect();
+}
+async function saveLedgerChest(){try{const body=ledgerBody(); const url=editingLedgerId?'/api/ledger-chests/'+editingLedgerId:'/api/ledger-chests'; const method=editingLedgerId?'PUT':'POST'; await api(url,{method,headers:{'content-type':'application/json'},body:JSON.stringify(body)}); cancelLedgerEdit(); await loadLedgerChests();}catch(e){alert(e.mesadmin)}}
+function editLedgerChest(id){const l=ledgerChestCache.find(x=>x.id===id); if(!l)return; editingLedgerId=id; ledger_purpose.value=l.purpose||'banking'; ledger_label.value=l.label||''; ledger_bot.value=l.bot_name||'UtilityBot'; ledger_x.value=l.chest_x||0; ledger_y.value=l.chest_y||64; ledger_z.value=l.chest_z||0; ledger_processed_x.value=l.processed_chest_x??''; ledger_processed_y.value=l.processed_chest_y??''; ledger_processed_z.value=l.processed_chest_z??''; ledger_allowed.value=(l.allowed_players||[]).join('\n'); ledger_min.value=l.min_credits||1; ledger_max.value=l.max_credits||100000000; ledger_remove.checked=l.remove_processed_book!==false; ledger_save_btn.textContent='Update Chest Waypoint'; ledger_cancel_btn.classList.remove('hidden');}
+function cancelLedgerEdit(){editingLedgerId=null; ledger_purpose.value='banking'; ledger_label.value='Credits Bank'; ledger_processed_x.value=''; ledger_processed_y.value=''; ledger_processed_z.value=''; ledger_save_btn.textContent='Save Ledger Chest'; ledger_cancel_btn.classList.add('hidden');}
+async function deleteLedgerChest(id){await api('/api/ledger-chests/'+id,{method:'DELETE'}); await loadLedgerChests();}
+async function walkLedgerChest(id){
+  const l=ledgerChestCache.find(x=>x.id===id);
+  const label=l?.label||id;
+  try{
+    activeWalkLabel=label;
+    viewportLog(`Chest walk started: '${label}' -> ${l?`${l.chest_x}, ${l.chest_y}, ${l.chest_z}`:''}`);
+    status.textContent=`Walking to chest ${label}...`;
+    const out=await api('/api/ledger-chests/'+id+'/walk',{method:'POST'});
+    status.textContent=out.mesadmin;
+    viewportLog(`Chest walk complete: ${out.mesadmin||label}`);
+    pingViewport();
+    activeWalkLabel=null;
+    setTimeout(statusLoop,300);
+    setTimeout(()=>requestWorldSnapshot(true),600);
+  }catch(e){
+    activeWalkLabel=null;
+    viewportLog(`Chest walk failed: ${e.mesadmin}`);
+    alert(e.mesadmin);
+  }
+}
+async function processLedgerChest(id){const l=ledgerChestCache.find(x=>x.id===id); const label=l?.label||id; try{activeWalkLabel=`bank ${label}`; viewportLog(`Banking walk/process started: '${label}' -> ${l?`${l.chest_x}, ${l.chest_y}, ${l.chest_z}`:''}`); ledgerResultCard.classList.remove('hidden'); ledgerMesadmin.textContent='Processing saved ledger chest...'; const out=await api('/api/ledger-chests/'+id+'/process',{method:'POST'}); renderLedgerResult(out); viewportLog(`Banking complete: ${out.mesadmin||label}`); pingViewport();}catch(e){viewportLog(`Banking failed: ${e.mesadmin}`); ledgerMesadmin.textContent=e.mesadmin} activeWalkLabel=null; statusLoop(); setTimeout(()=>requestWorldSnapshot(true),600);}
+async function processSelectedBankChest(){const id=bank_ledger_select?.value; if(!id)return alert('Create/select a banking chest on the Waypoints page first.'); await processLedgerChest(id);}
+async function walkSelectedBankChest(){const id=bank_ledger_select?.value; if(!id)return alert('Create/select a banking chest on the Waypoints page first.'); await walkLedgerChest(id);}
+function applyLedgerToBook(id){const picked=id?ledgerChestCache.find(x=>x.id===id):ledgerChestCache.find(x=>x.id===book_ledger_select.value); if(!picked)return; if((picked.purpose||'banking')!=='writing'){alert('Choose a writer chest waypoint for book deposits.');return;} if(book_ledger_select&&id)book_ledger_select.value=id; book_bot.value=picked.bot_name||'UtilityBot'; book_x.value=picked.chest_x; book_y.value=picked.chest_y; book_z.value=picked.chest_z;}
+async function walkSelectedWriterChest(){const id=book_ledger_select?.value; if(!id)return alert('Create/select a writer chest on the Waypoints page first.'); await walkLedgerChest(id);}
+function renderLedgerResult(out){lastLedgerResult=out; ledgerMesadmin.textContent=out.mesadmin; processedRows.innerHTML=(out.processed||[]).map(row=>`<tr><td>${row.slot}</td><td>${esc(row.author)}</td><td>${esc(row.recipient||'')}</td><td>${esc(row.title)}</td><td>${row.amount}</td><td>${row.balance.credits}</td></tr>`).join('')||'<tr><td colspan=6 class="muted">No books processed.</td></tr>'; skippedRows.innerHTML=(out.skipped||[]).map(esc).join('<br>')||'Nothing skipped.'; renderViewportChest();}
+async function processLedger(){
+  if((ledger_purpose.value||'banking')!=='banking'){
+    ledgerResultCard.classList.remove('hidden');
+    ledgerMesadmin.textContent='Switch the form to Banking intake chest before running the ledger.';
+    return;
+  }
+  ledgerResultCard.classList.remove('hidden');
+  ledgerMesadmin.textContent='Processing chest...';
+  processedRows.innerHTML='';
+  skippedRows.textContent='';
+  const input=ledgerBody();
+  try{
+    const out=await api('/api/chest-ledger/process',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(input)});
+    renderLedgerResult(out);
+  }catch(e){
+    ledgerMesadmin.textContent=e.mesadmin;
+  }
+  statusLoop();
+}
+async function writeSignPlaceBook(){
+  bookResultCard.classList.remove('hidden');
+  bookResult.textContent='Writing and signing book...';
+  const pages=book_pages.value.split(/\r?\n---\r?\n/).map(p=>p.trimEnd()).filter(p=>p.trim());
+  const input={
+    bot_name:book_bot.value,
+    recipient:book_recipient.value,
+    chest_x:+book_x.value,
+    chest_y:+book_y.value,
+    chest_z:+book_z.value,
+    inventory_slot:book_slot.value.trim()===''?null:+book_slot.value,
+    title:book_title.value,
+    pages,
+    place_in_chest:book_place.checked
+  };
+  try{
+    activeWalkLabel=`book writer ${input.chest_x}, ${input.chest_z}`;
+    viewportLog(`Book writer walk started: ${input.chest_x}, ${input.chest_y}, ${input.chest_z}`);
+    const out=await api('/api/books/write-sign-place',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(input)});
+    bookResult.textContent=out.mesadmin;
+    viewportLog(`Book writer complete: ${out.mesadmin}`);
+    pingViewport();
+  }catch(e){
+    viewportLog(`Book writer failed: ${e.mesadmin}`);
+    bookResult.textContent=e.mesadmin;
+  }
+  activeWalkLabel=null;
+  statusLoop();
+  setTimeout(()=>requestWorldSnapshot(true),600);
+}
+function butlerChestBody(){return {label:butler_chest_label.value,bot_name:butler_chest_bot.value,chest_x:Math.floor(+butler_chest_x.value||0),chest_y:Math.floor(+butler_chest_y.value||64),chest_z:Math.floor(+butler_chest_z.value||0)}}
+function butlerWaypointBody(){return {label:butler_waypoint_label.value,bot_name:butler_waypoint_bot.value,chest_x:Math.floor(+butler_waypoint_x.value||0),chest_y:Math.floor(+butler_waypoint_y.value||64),chest_z:Math.floor(+butler_waypoint_z.value||0)}}
+async function loadButlerLists(){
+  if(!me||me.role!=='owner')return;
+  butlerChestCache=await api('/api/butler/chests');
+  butlerWaypointCache=await api('/api/butler/waypoints');
+  butlerChests.innerHTML=butlerChestCache.map(c=>`<tr><td>${esc(c.label)}</td><td>${esc(c.bot_name||'UtilityBot')}</td><td>${c.chest_x}, ${c.chest_y}, ${c.chest_z}</td><td><button onclick="editButlerChest('${c.id}')">Edit</button> <button class="danger" onclick="deleteButlerChest('${c.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="4" class="muted">No source chests saved yet.</td></tr>';
+  butlerWaypoints.innerHTML=butlerWaypointCache.map(w=>`<tr><td>${esc(w.label)}</td><td>${esc(w.bot_name||'UtilityBot')}</td><td>${w.chest_x}, ${w.chest_y}, ${w.chest_z}</td><td><button onclick="editButlerWaypoint('${w.id}')">Edit</button> <button class="danger" onclick="deleteButlerWaypoint('${w.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="4" class="muted">No destination waypoints saved yet.</td></tr>';
+  renderButlerSelects();
+}
+function renderButlerSelects(){if(butler_source_select)butler_source_select.innerHTML=butlerChestCache.map(c=>`<option value="${c.id}">${esc(c.label)} (${c.chest_x}, ${c.chest_y}, ${c.chest_z})</option>`).join(''); if(butler_destination_select)butler_destination_select.innerHTML=butlerWaypointCache.map(w=>`<option value="${w.id}">${esc(w.label)} (${w.chest_x}, ${w.chest_y}, ${w.chest_z})</option>`).join('');}
+async function saveButlerChest(){try{const body=butlerChestBody(); const url=editingButlerChestId?'/api/butler/chests/'+editingButlerChestId:'/api/butler/chests'; const method=editingButlerChestId?'PUT':'POST'; await api(url,{method,headers:{'content-type':'application/json'},body:JSON.stringify(body)}); cancelButlerChestEdit(); await loadButlerLists();}catch(e){alert(e.mesadmin)}}
+function editButlerChest(id){const c=butlerChestCache.find(x=>x.id===id); if(!c)return; editingButlerChestId=id; butler_chest_label.value=c.label||''; butler_chest_bot.value=c.bot_name||'UtilityBot'; butler_chest_x.value=c.chest_x||0; butler_chest_y.value=c.chest_y||64; butler_chest_z.value=c.chest_z||0; butler_chest_save_btn.textContent='Update Source Chest'; butler_chest_cancel_btn.classList.remove('hidden');}
+function cancelButlerChestEdit(){editingButlerChestId=null; butler_chest_label.value=''; butler_chest_bot.value='UtilityBot'; butler_chest_x.value=0; butler_chest_y.value=64; butler_chest_z.value=0; butler_chest_save_btn.textContent='Save Source Chest'; butler_chest_cancel_btn.classList.add('hidden');}
+async function deleteButlerChest(id){await api('/api/butler/chests/'+id,{method:'DELETE'}); await loadButlerLists();}
+async function walkButlerChest(id){const c=butlerChestCache.find(x=>x.id===id); const label=c?.label||id; try{activeWalkLabel=label; viewportLog(`Butler source walk started: '${label}' -> ${c?`${c.chest_x}, ${c.chest_y}, ${c.chest_z}`:''}`); status.textContent=`Walking to source chest ${label}...`; const out=await api('/api/butler/chests/'+id+'/walk',{method:'POST'}); status.textContent=out.mesadmin; viewportLog(`Butler source walk complete: ${out.mesadmin||label}`); pingViewport(); activeWalkLabel=null; setTimeout(statusLoop,300); setTimeout(()=>requestWorldSnapshot(true),600);}catch(e){activeWalkLabel=null; viewportLog(`Butler source walk failed: ${e.mesadmin}`); alert(e.mesadmin);}}
+async function saveButlerWaypoint(){try{const body=butlerWaypointBody(); const url=editingButlerWaypointId?'/api/butler/waypoints/'+editingButlerWaypointId:'/api/butler/waypoints'; const method=editingButlerWaypointId?'PUT':'POST'; await api(url,{method,headers:{'content-type':'application/json'},body:JSON.stringify(body)}); cancelButlerWaypointEdit(); await loadButlerLists();}catch(e){alert(e.mesadmin)}}
+function editButlerWaypoint(id){const w=butlerWaypointCache.find(x=>x.id===id); if(!w)return; editingButlerWaypointId=id; butler_waypoint_label.value=w.label||''; butler_waypoint_bot.value=w.bot_name||'UtilityBot'; butler_waypoint_x.value=w.chest_x||0; butler_waypoint_y.value=w.chest_y||64; butler_waypoint_z.value=w.chest_z||0; butler_waypoint_save_btn.textContent='Update Waypoint'; butler_waypoint_cancel_btn.classList.remove('hidden');}
+function cancelButlerWaypointEdit(){editingButlerWaypointId=null; butler_waypoint_label.value=''; butler_waypoint_bot.value='UtilityBot'; butler_waypoint_x.value=0; butler_waypoint_y.value=64; butler_waypoint_z.value=0; butler_waypoint_save_btn.textContent='Save Waypoint'; butler_waypoint_cancel_btn.classList.add('hidden');}
+async function deleteButlerWaypoint(id){await api('/api/butler/waypoints/'+id,{method:'DELETE'}); await loadButlerLists();}
+async function walkButlerWaypoint(id){const w=butlerWaypointCache.find(x=>x.id===id); const label=w?.label||id; try{activeWalkLabel=label; viewportLog(`Butler destination walk started: '${label}' -> ${w?`${w.chest_x}, ${w.chest_y}, ${w.chest_z}`:''}`); status.textContent=`Walking to destination chest ${label}...`; const out=await api('/api/butler/waypoints/'+id+'/walk',{method:'POST'}); status.textContent=out.mesadmin; viewportLog(`Butler destination walk complete: ${out.mesadmin||label}`); pingViewport(); activeWalkLabel=null; setTimeout(statusLoop,300); setTimeout(()=>requestWorldSnapshot(true),600);}catch(e){activeWalkLabel=null; viewportLog(`Butler destination walk failed: ${e.mesadmin}`); alert(e.mesadmin);}}
+async function walkSelectedButlerSource(){const id=butler_source_select?.value; if(!id)return alert('Create/select a Butler source chest on the Waypoints page first.'); await walkButlerChest(id);}
+async function walkSelectedButlerDestination(){const id=butler_destination_select?.value; if(!id)return alert('Create/select a Butler destination chest on the Waypoints page first.'); await walkButlerWaypoint(id);}
+async function runButlerTransfer(){
+  butlerOutput.textContent='Running Bank Butler transfer...';
+  try{
+    const input={source_chest_id:butler_source_select.value,destination_waypoint_id:butler_destination_select.value,shulker_name:butler_shulker_name.value};
+    const src=butlerChestCache.find(x=>x.id===input.source_chest_id), dst=butlerWaypointCache.find(x=>x.id===input.destination_waypoint_id);
+    activeWalkLabel=`butler ${src?.label||''} -> ${dst?.label||''}`;
+    viewportLog(`Bank Butler transfer walk started: ${src?.label||input.source_chest_id} -> ${dst?.label||input.destination_waypoint_id}`);
+    const out=await api('/api/butler/transfer',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(input)});
+    butlerOutput.textContent=out.mesadmin;
+    status.textContent=out.mesadmin;
+    viewportLog(`Bank Butler transfer complete: ${out.mesadmin}`);
+    pingViewport();
+  }catch(e){
+    viewportLog(`Bank Butler transfer failed: ${e.mesadmin}`);
+    butlerOutput.textContent=e.mesadmin;
+  }
+  activeWalkLabel=null;
+  statusLoop();
+  setTimeout(()=>requestWorldSnapshot(true),600);
+}
+function drawViewport(){drawWorldSnapshot(); renderViewportChest();}
+function viewportLog(text){
+  const el=document.getElementById('viewportTerminal');
+  if(!el)return;
+  const stamp=new Date().toLocaleTimeString();
+  el.textContent += `\n[${stamp}] ${text}`;
+  el.scrollTop=el.scrollHeight;
+}
+function logViewportStatus(s){
+  const bots=(s?.bots||[]).filter(b=>b.connected&&b.x!=null&&b.y!=null&&b.z!=null);
+  if(!bots.length)return;
+  const line=bots.map(b=>`${b.name}: ${Math.round(b.x)}, ${Math.round(b.y)}, ${Math.round(b.z)}`).join(' | ');
+  if(line!==lastViewportBotLine){
+    lastViewportBotLine=line;
+    if(activeWalkLabel) viewportLog(`Progress ${line}`);
+  }
+}
+function pingViewport(){
+  if(!document.getElementById('viewport_ping')?.checked)return;
+  try{
+    const AudioCtx=window.AudioContext||window.webkitAudioContext;
+    const ctx=new AudioCtx();
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.frequency.value=880;
+    gain.gain.value=.08;
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start();
+    setTimeout(()=>{osc.stop(); ctx.close();},180);
+  }catch(_){}
+}
+function renderViewportChest(){
+  if(!lastLedgerResult)return;
+  viewportChestRows.innerHTML=(lastLedgerResult.processed||[]).map(row=>`<tr><td>${row.slot}</td><td>${esc(row.author)}</td><td>${esc(row.recipient||'')}</td><td>${esc(row.title)}</td><td>${row.amount}</td><td>${row.balance.credits}</td></tr>`).join('')||'<tr><td colspan="6" class="muted">No books processed.</td></tr>';
+  viewportSkipped.innerHTML=(lastLedgerResult.skipped||[]).map(esc).join('<br>')||'Nothing skipped.';
+}
+async function requestWorldSnapshot(silent=false){
+  if(viewportSnapshotBusy)return;
+  viewportSnapshotBusy=true;
+  if(!silent) worldDetails.textContent='Rendering from bot world data...';
+  try{
+    const chunks=Math.max(1,Math.min(32,+world_chunks.value||12));
+    const snap=await api('/api/viewport/snapshot',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({bot_name:world_bot.value,chunks})});
+    lastWorldSnapshot=snap;
+    lastViewportSnapshotAt=Date.now();
+    lastViewportCenter={x:snap.center_x,z:snap.center_z,chunks:snap.chunks};
+    if(!silent) viewportLog(`Rendered ${snap.chunks} chunk${snap.chunks===1?'':'s'} around ${snap.bot_name||world_bot.value||'UtilityBot'}`);
+    drawWorldSnapshot();
+  }catch(e){
+    if(!silent){
+      worldDetails.textContent=e.mesadmin;
+      viewportLog(`Viewport render failed: ${e.mesadmin}`);
+    }
+  }finally{
+    viewportSnapshotBusy=false;
+  }
+}
+function drawWorldSnapshot(){
+  const c=worldCanvas, ctx=c.getContext('2d'), w=c.width, h=c.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#05060a'; ctx.fillRect(0,0,w,h);
+  if(!lastWorldSnapshot){
+    ctx.fillStyle='#9aa3b8'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='16px system-ui';
+    ctx.fillText('Connect a bot, then refresh viewport',w/2,h/2);
+    ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+    return;
+  }
+  const blocks=lastWorldSnapshot.blocks||[];
+  if(!blocks.length){
+    worldDetails.textContent='No known non-air blocks in the sampled area. The bot may not have chunks loaded yet.';
+    return;
+  }
+  const chunks=Math.max(1,Math.min(32,+lastWorldSnapshot.chunks||12));
+  const size=chunks*16, cx=Math.floor(lastWorldSnapshot.center_x), cz=Math.floor(lastWorldSnapshot.center_z);
+  const minX=cx-Math.floor(size/2), minZ=cz-Math.floor(size/2), maxX=minX+size-1, maxZ=minZ+size-1;
+  const pad=46, plot={x:pad,y:pad,size:Math.min(w,h)-pad*2}, cell=plot.size/size;
+  lastViewportPlot={plot,minX,minZ,maxX,maxZ,cell,size};
+  let minY=Infinity,maxY=-Infinity;
+  for(const b of blocks){
+    if(b.y<minY)minY=b.y;
+    if(b.y>maxY)maxY=b.y;
+  }
+  ctx.fillStyle='#10151b';
+  ctx.fillRect(plot.x,plot.y,plot.size,plot.size);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(plot.x,plot.y,plot.size,plot.size);
+  ctx.clip();
+  for(const b of blocks){
+    if(b.x<minX||b.x>maxX||b.z<minZ||b.z>maxZ)continue;
+    const x=plot.x+(b.x-minX)*cell, y=plot.y+(b.z-minZ)*cell;
+    const texture=((b.x*31+b.z*17)&7)-3;
+    ctx.fillStyle=shadeColor(blockColor(b.kind),heightShade(b.y,minY,maxY)+texture);
+    ctx.fillRect(x,y,Math.ceil(cell)+1,Math.ceil(cell)+1);
+  }
+
+  const chestX=+ledger_x.value||0, chestZ=+ledger_z.value||0;
+  if(chestX>=minX&&chestX<=maxX&&chestZ>=minZ&&chestZ<=maxZ){
+    drawMinimapMarker(ctx,plot,minX,minZ,cell,chestX,chestZ,'#d6b25e','square','Chest');
+  }
+  for(const p of pearlCache){
+    if(p.x>=minX&&p.x<=maxX&&p.z>=minZ&&p.z<=maxZ)drawMinimapMarker(ctx,plot,minX,minZ,cell,p.x,p.z,'#5da1ff','dot',p.player);
+  }
+  for(const w of waypointCache){
+    if(w.x>=minX&&w.x<=maxX&&w.z>=minZ&&w.z<=maxZ){
+      const icon=waypointIcon(w);
+      drawMinimapMarker(ctx,plot,minX,minZ,cell,w.x,w.z,icon.color,icon.shape,w.label);
+    }
+  }
+
+  for(let i=0;i<=size;i++){
+    const p=plot.x+i*cell, q=plot.y+i*cell;
+    ctx.strokeStyle=i%16===0?'rgba(245,250,255,.55)':'rgba(0,0,0,.18)';
+    ctx.lineWidth=i%16===0?2:1;
+    ctx.beginPath(); ctx.moveTo(p,plot.y); ctx.lineTo(p,plot.y+plot.size); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(plot.x,q); ctx.lineTo(plot.x+plot.size,q); ctx.stroke();
+  }
+
+  const liveBot=currentViewportBot();
+  const botWorldX=liveBot?.x??lastWorldSnapshot.center_x;
+  const botWorldY=liveBot?.y??lastWorldSnapshot.center_y;
+  const botWorldZ=liveBot?.z??lastWorldSnapshot.center_z;
+  if(botWorldX>=minX&&botWorldX<=maxX&&botWorldZ>=minZ&&botWorldZ<=maxZ){
+    const botX=plot.x+(botWorldX-minX)*cell, botZ=plot.y+(botWorldZ-minZ)*cell;
+    drawBotPixelDot(ctx,botX,botZ,cell);
+  }
+  ctx.restore();
+
+  ctx.strokeStyle='#0b0d12'; ctx.lineWidth=8; ctx.strokeRect(plot.x-4,plot.y-4,plot.size+8,plot.size+8);
+  ctx.strokeStyle='#9ba3b1'; ctx.lineWidth=2; ctx.strokeRect(plot.x-1,plot.y-1,plot.size+2,plot.size+2);
+  ctx.strokeStyle='#232936'; ctx.lineWidth=2; ctx.strokeRect(plot.x+3,plot.y+3,plot.size-6,plot.size-6);
+
+  ctx.fillStyle='#edf3ff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='bold 20px system-ui';
+  ctx.fillText('N',plot.x+plot.size/2,22);
+  ctx.font='bold 14px system-ui';
+  ctx.fillText('S',plot.x+plot.size/2,h-22);
+  ctx.fillText('W',22,plot.y+plot.size/2);
+  ctx.fillText('E',w-22,plot.y+plot.size/2);
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic'; ctx.font='12px system-ui';
+  ctx.fillStyle='rgba(245,248,255,.9)';
+  ctx.fillText(`${minX}, ${minZ}`,plot.x,plot.y-10);
+  ctx.textAlign='right';
+  ctx.fillText(`${maxX}, ${maxZ}`,plot.x+plot.size,plot.y+plot.size+20);
+  ctx.textAlign='left';
+
+  if(minimapCoords)minimapCoords.textContent=`X ${botWorldX.toFixed(1)} Z ${botWorldZ.toFixed(1)}`;
+  if(minimapChunks)minimapChunks.textContent=`${chunks} chunk${chunks===1?'':'s'} | Y ${botWorldY.toFixed(1)}`;
+  const biome=lastWorldSnapshot.biome||'unknown biome';
+  const liveClock=currentWorldClock();
+  const timeOfDay=liveClock?`${liveClock.time_label}${liveClock.is_day?' (Day)':' (Night)'}`:null;
+  worldStats.innerHTML=[
+    ['Bot',`${liveBot?.name||lastWorldSnapshot.bot_name||'UtilityBot'}`],
+    ['Position',`${botWorldX.toFixed(1)}, ${botWorldY.toFixed(1)}, ${botWorldZ.toFixed(1)}`],
+    ['Biome',biome],
+    ...(timeOfDay?[['Time of Day',timeOfDay]]:[]),
+    ['Render',`${size}x${size} blocks`],
+    ['Known Columns',`${blocks.length}/${lastWorldSnapshot.scanned_columns}`],
+    ['Height Range',`Y ${minY}-${maxY}`]
+  ].map(([label,value])=>`<div class="statTile"><div class="statLabel">${esc(label)}</div><div class="statValue">${esc(value)}</div></div>`).join('');
+  worldDetails.textContent='Click the map to fill a waypoint. Terrain includes live bot data plus cached viewport memory.';
+}
+function currentWorldClock(){
+  if(botStatusCache?.world_time){
+    const base=botStatusCache.world_time;
+    const ageMs=Date.now()-(botStatusCache.fetched_at||Date.now());
+    const elapsedTicks=Math.floor(ageMs*20/1000);
+    const day_time=(base.day_time||0)+elapsedTicks;
+    const time_of_day=day_time%24000;
+    return {day_time,time_of_day,time_label:minecraftTimeLabel(time_of_day),is_day:time_of_day<12000};
+  }
+  if(lastWorldSnapshot?.time_of_day!=null){
+    const tod=lastWorldSnapshot.time_of_day;
+    return {day_time:lastWorldSnapshot.day_time,time_of_day:tod,time_label:lastWorldSnapshot.time_label,is_day:tod<12000};
+  }
+  return null;
+}
+function minecraftTimeLabel(tick){
+  const dayTick=((tick%24000)+24000)%24000;
+  const hour=(Math.floor(dayTick/1000)+6)%24;
+  const minute=Math.floor((dayTick%1000)*60/1000);
+  const phase=dayTick<=999?'Sunrise':dayTick<=5999?'Morning':dayTick<=11999?'Day':dayTick<=12999?'Sunset':dayTick<=17999?'Night':dayTick<=22999?'Midnight':'Dawn';
+  return `${phase} ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')} (${dayTick} ticks)`;
+}
+function currentViewportBot(){
+  const wanted=(world_bot?.value||lastWorldSnapshot?.bot_name||'').trim().toLowerCase();
+  const bots=(botStatusCache?.bots||[]).filter(b=>b.connected&&b.x!=null&&b.y!=null&&b.z!=null);
+  return bots.find(b=>String(b.name||'').toLowerCase()===wanted)||bots[0]||null;
+}
+function viewportNeedsBotRecenter(){
+  const bot=currentViewportBot();
+  if(!bot)return false;
+  if(!lastWorldSnapshot||!lastViewportCenter)return true;
+  const chunks=Math.max(1,Math.min(32,+lastWorldSnapshot.chunks||12));
+  const size=chunks*16, cx=Math.floor(lastWorldSnapshot.center_x), cz=Math.floor(lastWorldSnapshot.center_z);
+  const minX=cx-Math.floor(size/2), minZ=cz-Math.floor(size/2), maxX=minX+size-1, maxZ=minZ+size-1;
+  const margin=Math.max(12,Math.floor(size*.18));
+  return bot.x<minX+margin||bot.x>maxX-margin||bot.z<minZ+margin||bot.z>maxZ-margin;
+}
+function maybeRefreshViewportForMovingBot(silent=true){
+  if(!me||activePage!=='viewport'||!document.getElementById('viewport_auto')?.checked)return;
+  const now=Date.now();
+  const urgent=activeWalkLabel&&viewportNeedsBotRecenter();
+  const stale=activeWalkLabel?(now-lastViewportSnapshotAt>2200):(now-lastViewportSnapshotAt>6500);
+  if(urgent||stale){
+    if(urgent)viewportLog('Viewport recentering around moving bot...');
+    requestWorldSnapshot(silent);
+  }
+}
+function worldFromViewportClick(evt){
+  if(!lastViewportPlot)return null;
+  const rect=worldCanvas.getBoundingClientRect();
+  const scaleX=worldCanvas.width/rect.width, scaleY=worldCanvas.height/rect.height;
+  const x=(evt.clientX-rect.left)*scaleX, y=(evt.clientY-rect.top)*scaleY;
+  const {plot,minX,minZ,cell}=lastViewportPlot;
+  if(x<plot.x||x>plot.x+plot.size||y<plot.y||y>plot.y+plot.size)return null;
+  return {x:Math.floor(minX+(x-plot.x)/cell), z:Math.floor(minZ+(y-plot.y)/cell)};
+}
+function fillWaypointFromViewport(evt){
+  const picked=worldFromViewportClick(evt);
+  if(!picked)return;
+  const bot=currentViewportBot();
+  waypoint_x.value=picked.x;
+  waypoint_z.value=picked.z;
+  waypoint_y.value=bot?.y!=null?Math.floor(bot.y):Math.floor(lastWorldSnapshot?.center_y||0);
+  waypoint_bot.value=bot?.name||world_bot.value||'UtilityBot';
+  if(!waypoint_label.value) waypoint_label.value=`map ${picked.x}, ${picked.z}`;
+  viewportLog(`Map selected waypoint ${picked.x}, ${waypoint_y.value||'any'}, ${picked.z}`);
+}
+function drawBotPixelDot(ctx,x,z,cell){
+  ctx.save();
+  const s=Math.max(18,Math.min(34,cell*2.8));
+  const half=s/2;
+  ctx.fillStyle='rgba(0,0,0,.85)';
+  ctx.fillRect(x-half-4,z-half-4,s+8,s+8);
+  ctx.fillStyle='#fff';
+  ctx.fillRect(x-half-2,z-half-2,s+4,s+4);
+  ctx.fillStyle='#fffb45';
+  ctx.fillRect(x-half,z-half,s,s);
+  ctx.fillStyle='#ff3045';
+  const core=Math.max(6,s*.36);
+  ctx.fillRect(x-core/2,z-core/2,core,core);
+  ctx.restore();
+}
+function waypointIcon(w){
+  const text=`${w.label||''} ${w.notes||''}`.toLowerCase();
+  if(text.includes('chest')||text.includes('ledger'))return{color:'#d6b25e',shape:'square'};
+  if(text.includes('pearl')||text.includes('stasis'))return{color:'#5da1ff',shape:'dot'};
+  if(text.includes('base')||text.includes('home'))return{color:'#5ff083',shape:'house'};
+  if(text.includes('vault')||text.includes('bank'))return{color:'#f3d36b',shape:'vault'};
+  if(text.includes('casino'))return{color:'#ff4fb8',shape:'star'};
+  if(text.includes('portal')||text.includes('nether'))return{color:'#b174ff',shape:'portal'};
+  return{color:'#e884ff',shape:'diamond'};
+}
+function drawMinimapMarker(ctx,plot,minX,minZ,cell,x,z,color,shape,label){
+  const px=plot.x+(x-minX+.5)*cell, py=plot.y+(z-minZ+.5)*cell;
+  ctx.save();
+  ctx.fillStyle=color;
+  ctx.strokeStyle='#07080c';
+  ctx.lineWidth=2;
+  if(shape==='square'||shape==='vault'){
+    const s=Math.max(7,cell*.8);
+    ctx.fillRect(px-s/2,py-s/2,s,s);
+    ctx.strokeRect(px-s/2,py-s/2,s,s);
+    if(shape==='vault'){
+      ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.arc(px,py,s*.22,0,Math.PI*2); ctx.stroke();
+    }
+  }else if(shape==='diamond'){
+    const s=Math.max(8,cell*.85);
+    ctx.beginPath(); ctx.moveTo(px,py-s/2); ctx.lineTo(px+s/2,py); ctx.lineTo(px,py+s/2); ctx.lineTo(px-s/2,py); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }else if(shape==='house'){
+    const s=Math.max(10,cell);
+    ctx.beginPath(); ctx.moveTo(px,py-s*.55); ctx.lineTo(px+s*.55,py-s*.05); ctx.lineTo(px+s*.35,py-s*.05); ctx.lineTo(px+s*.35,py+s*.48); ctx.lineTo(px-s*.35,py+s*.48); ctx.lineTo(px-s*.35,py-s*.05); ctx.lineTo(px-s*.55,py-s*.05); ctx.closePath(); ctx.fill(); ctx.stroke();
+  }else if(shape==='star'){
+    const r=Math.max(7,cell*.55);
+    ctx.beginPath();
+    for(let i=0;i<10;i++){
+      const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r:r*.45;
+      const sx=px+Math.cos(a)*rr, sy=py+Math.sin(a)*rr;
+      if(i)ctx.lineTo(sx,sy);else ctx.moveTo(sx,sy);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }else if(shape==='portal'){
+    const s=Math.max(10,cell);
+    ctx.beginPath(); ctx.ellipse(px,py,s*.36,s*.58,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  }else{
+    ctx.beginPath(); ctx.arc(px,py,Math.max(4,cell*.38),0,Math.PI*2); ctx.fill(); ctx.stroke();
+  }
+  if(cell>=15&&label){
+    ctx.fillStyle='#fff'; ctx.font='11px system-ui'; ctx.fillText(label,px+6,py-6);
+  }
+  ctx.restore();
+}
+function heightShade(y,minY,maxY){if(maxY<=minY)return 0; return ((y-minY)/(maxY-minY)-0.5)*34;}
+function shadeColor(hex,amount){
+  const n=parseInt(hex.slice(1),16);
+  const r=Math.max(0,Math.min(255,((n>>16)&255)+amount));
+  const g=Math.max(0,Math.min(255,((n>>8)&255)+amount));
+  const b=Math.max(0,Math.min(255,(n&255)+amount));
+  return `rgb(${r|0},${g|0},${b|0})`;
+}
+function blockColor(kind){
+  const k=String(kind).toLowerCase();
+  if(k.includes('grass'))return'#4f8a3b';
+  if(k.includes('dirt')||k.includes('mud'))return'#7a5736';
+  if(k.includes('stone')||k.includes('deepslate')||k.includes('tuff'))return'#777b82';
+  if(k.includes('sand'))return'#d7c47a';
+  if(k.includes('water'))return'#2f70c9';
+  if(k.includes('lava'))return'#f06a22';
+  if(k.includes('log')||k.includes('wood')||k.includes('planks'))return'#8b633b';
+  if(k.includes('leaf')||k.includes('leaves'))return'#2f7d3a';
+  if(k.includes('chest'))return'#c28a3e';
+  if(k.includes('glass'))return'#80c7d8';
+  if(k.includes('snow')||k.includes('ice'))return'#dcefff';
+  if(k.includes('ore'))return'#8a8580';
+  return'#9b8f78';
+}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function escAttr(s){return esc(s).replace(/`/g,'&#96;')}
+function viewportAutoLoop(){
+  if(!me||activePage!=='viewport'||!document.getElementById('viewport_auto')?.checked)return;
+  statusLoop();
+  requestWorldSnapshot(true);
+}
+window.addEventListener('load',()=>{document.getElementById('worldCanvas')?.addEventListener('click',fillWaypointFromViewport); updateHubTypeFields();});
+if(typeof waypoint_categories_text!=='undefined'&&waypoint_categories_text){waypoint_categories_text.addEventListener('input',()=>{waypoint_categories_text.dataset.touched='1'; updateWaypointCategoryList();});}
+boot(); setInterval(statusLoop,3000); setInterval(viewportAutoLoop,1800);
+  </script>
+</body>
+</html>

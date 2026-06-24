@@ -1,0 +1,1 @@
+winget install CaddyServer.Caddy

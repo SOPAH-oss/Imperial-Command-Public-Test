@@ -1,0 +1,29 @@
+[package]
+name = "minecraft_utility_bot"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+axum = { version = "0.7", features = ["macros"] }
+chrono = { version = "0.4", features = ["serde"] }
+eyre = "0.6"
+rand = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.5", features = ["fs", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Minecraft 26.2 target: use Azalea git because crates.io stable is still 0.16.0+mc26.1.
+# Requires internet access during first build and Rust nightly.
+azalea = { git = "https://github.com/azalea-rs/azalea" }
+azalea-client = { git = "https://github.com/azalea-rs/azalea", package = "azalea-client" }
+azalea-protocol = { git = "https://github.com/azalea-rs/azalea", package = "azalea-protocol" }
+azalea-core = { git = "https://github.com/azalea-rs/azalea", package = "azalea-core" }
+azalea-block = { git = "https://github.com/azalea-rs/azalea", package = "azalea-block" }
+azalea-inventory = { git = "https://github.com/azalea-rs/azalea", package = "azalea-inventory" }
+azalea-registry = { git = "https://github.com/azalea-rs/azalea", package = "azalea-registry" }
+azalea-entity = { git = "https://github.com/azalea-rs/azalea", package = "azalea-entity" }

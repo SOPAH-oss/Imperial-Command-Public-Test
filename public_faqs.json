@@ -1,0 +1,12 @@
+[
+  {
+    "id": "faq-1",
+    "number": 1,
+    "text": "Example FAQ answer. Edit or delete this entry in the GUI.",
+    "category": "General",
+    "enabled": true,
+    "cooldown_seconds": 0,
+    "source": "example",
+    "notes": ""
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "token": "PUT_DISCORD_BOT_TOKEN_HERE",
+  "client_id": "PUT_APPLICATION_CLIENT_ID_HERE",
+  "guild_id": "PUT_SERVER_GUILD_ID_HERE",
+  "admin_role_id": "",
+  "currency_name": "Credits",
+  "shop_role_mappings": {
+    "VIP": "ROLE_ID_HERE",
+    "scholar role": "ROLE_ID_HERE"
+  }
+}
